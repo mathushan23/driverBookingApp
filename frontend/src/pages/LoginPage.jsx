@@ -2,34 +2,33 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { AuthShell } from '../components/layout/AuthShell'
 import { Button, FormHeader, Input } from '../components/ui/FormControls'
-import { adminUser } from '../data/gorideData'
 import { api } from '../services/api'
 
 export function LoginPage({ saveUser }) {
   const navigate = useNavigate()
   const [form, setForm] = useState({ email: '', password: '', remember: true })
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
-  const submit = (event) => {
+  const submit = async (event) => {
     event.preventDefault()
     setLoading(true)
+    setError('')
 
-    const registered = JSON.parse(localStorage.getItem('goride:registered') || 'null')
-    const nextUser =
-      form.email.toLowerCase() === adminUser.email
-        ? adminUser
-        : registered || {
-            email: form.email,
-            name: form.email.split('@')[0] || 'GoRide User',
-            role: null,
-            token: 'demo-user-token',
-            onboardingComplete: false,
-          }
+    try {
+      const { data: nextUser } = await api.post('/auth/login', {
+        email: form.email,
+        password: form.password,
+      })
 
-    api.defaults.headers.common.Authorization = `Bearer ${nextUser.token}`
-    saveUser(nextUser)
-    setLoading(false)
-    navigate(nextUser.role === 'admin' ? '/dashboard' : '/onboarding')
+      api.defaults.headers.common.Authorization = `Bearer ${nextUser.token}`
+      saveUser(nextUser)
+      navigate(nextUser.role === 'admin' ? '/dashboard' : '/onboarding')
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || 'Login failed. Check your email and password.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -49,6 +48,7 @@ export function LoginPage({ saveUser }) {
           </label>
           <a href="#forgot">Forgot Password</a>
         </div>
+        {error && <p className="form-error">{error}</p>}
         <Button label={loading ? 'Signing in...' : 'Start Riding'} disabled={loading} />
       </form>
       <p className="auth-switch">

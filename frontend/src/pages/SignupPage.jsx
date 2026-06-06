@@ -2,8 +2,9 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { AuthShell } from '../components/layout/AuthShell'
 import { Button, FormHeader, Input } from '../components/ui/FormControls'
+import { api } from '../services/api'
 
-export function SignupPage() {
+export function SignupPage({ saveUser }) {
   const navigate = useNavigate()
   const [form, setForm] = useState({
     name: '',
@@ -12,27 +13,33 @@ export function SignupPage() {
     confirmPassword: '',
   })
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  const submit = (event) => {
+  const submit = async (event) => {
     event.preventDefault()
     if (form.password !== form.confirmPassword) {
       setError('Passwords must match.')
       return
     }
 
-    localStorage.setItem(
-      'goride:registered',
-      JSON.stringify({
-        email: form.email,
-        name: form.name,
-        role: null,
-        token: 'demo-user-token',
-        onboardingComplete: false,
-      }),
-    )
-
+    setLoading(true)
     setError('')
-    navigate('/login')
+
+    try {
+      const { data: nextUser } = await api.post('/auth/signup', {
+        name: form.name,
+        email: form.email,
+        password: form.password,
+      })
+
+      api.defaults.headers.common.Authorization = `Bearer ${nextUser.token}`
+      saveUser(nextUser)
+      navigate('/onboarding')
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || 'Signup failed. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -49,7 +56,7 @@ export function SignupPage() {
           onChange={(confirmPassword) => setForm({ ...form, confirmPassword })}
         />
         {error && <p className="form-error">{error}</p>}
-        <Button label="Create GoRide Account" />
+        <Button label={loading ? 'Creating account...' : 'Create GoRide Account'} disabled={loading} />
       </form>
       <p className="auth-switch">
         Already part of GoRide? <Link to="/login">Sign in instead</Link>

@@ -7,21 +7,34 @@ import { CityBackground } from '../components/layout/CityBackground'
 import { Button, Input } from '../components/ui/FormControls'
 import { Illustration } from '../components/ui/Illustration'
 import { roleCards } from '../data/gorideData'
+import { api } from '../services/api'
 
 export function OnboardingPage({ user, saveUser }) {
   const navigate = useNavigate()
   const [selectedRole, setSelectedRole] = useState(null)
   const [form, setForm] = useState({})
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  const complete = (event) => {
+  const complete = async (event) => {
     event.preventDefault()
-    saveUser({
-      ...user,
-      ...form,
-      role: selectedRole,
-      onboardingComplete: true,
-    })
-    navigate('/welcome')
+    setLoading(true)
+    setError('')
+
+    try {
+      const { data: updatedUser } = await api.patch(`/users/${user.id}/onboarding`, {
+        ...form,
+        role: selectedRole,
+      })
+
+      api.defaults.headers.common.Authorization = `Bearer ${updatedUser.token}`
+      saveUser(updatedUser)
+      navigate('/welcome')
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || 'Could not save your role. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -80,7 +93,8 @@ export function OnboardingPage({ user, saveUser }) {
                   <Input label="Vehicle Number" value={form.vehicleNumber || ''} onChange={(vehicleNumber) => setForm({ ...form, vehicleNumber })} />
                 </>
               )}
-              <Button label="Continue" />
+              {error && <p className="form-error">{error}</p>}
+              <Button label={loading ? 'Saving...' : 'Continue'} disabled={loading} />
             </motion.form>
           )}
         </AnimatePresence>

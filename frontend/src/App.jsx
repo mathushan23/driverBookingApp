@@ -27,7 +27,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Navigate to={user ? '/dashboard' : '/login'} />} />
-        <Route path="/signup" element={<SignupPage />} />
+        <Route path="/signup" element={<SignupPage saveUser={saveUser} />} />
         <Route path="/login" element={<LoginPage saveUser={saveUser} />} />
         <Route
           path="/onboarding"
