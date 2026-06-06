@@ -49,7 +49,7 @@ export function LoginPage({ saveUser }) {
           <a href="#forgot">Forgot Password</a>
         </div>
         {error && <p className="form-error">{error}</p>}
-        <Button label={loading ? 'Signing in...' : 'Start Riding'} disabled={loading} />
+        <Button label={loading ? 'Signing in...' : 'Login'} disabled={loading} />
       </form>
       <p className="auth-switch">
         New passenger or driver? <Link to="/signup">Create your GoRide account</Link>
