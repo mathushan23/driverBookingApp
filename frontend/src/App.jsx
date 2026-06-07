@@ -7,6 +7,7 @@ import { DriverWelcomePage } from './pages/driver/DriverWelcomePage'
 import { LoginPage } from './pages/LoginPage'
 import { OnboardingPage } from './pages/OnboardingPage'
 import { RiderDashboard } from './pages/rider/RiderDashboard'
+import { RiderBookingWaitingPage } from './pages/rider/RiderBookingWaitingPage'
 import { RiderWelcomePage } from './pages/rider/RiderWelcomePage'
 import { SignupPage } from './pages/SignupPage'
 import { ProtectedRoute, RoleRoute } from './routes/ProtectedRoute'
@@ -63,6 +64,14 @@ function AppRoutes({ user, saveUser }) {
         element={
           <RoleRoute user={user} allowedRole="rider">
             <RiderDashboard user={user} logout={logout} />
+          </RoleRoute>
+        }
+      />
+      <Route
+        path="/rider/booking/:bookingId"
+        element={
+          <RoleRoute user={user} allowedRole="rider">
+            <RiderBookingWaitingPage user={user} />
           </RoleRoute>
         }
       />

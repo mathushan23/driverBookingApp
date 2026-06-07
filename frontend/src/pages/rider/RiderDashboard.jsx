@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { BackgroundFX } from '../../components/auth/AuthLayout'
 import { LocationPicker } from '../../components/location/LocationPicker'
 import { api } from '../../services/api'
@@ -8,16 +9,68 @@ const assignedDriver = { name: 'Nimal Perera', vehicle: 'Toyota Aqua', eta: '3 m
 const vehicleTypes = ['motor bike', 'three wheeler', 'car', 'van']
 
 export function RiderDashboard({ user, logout }) {
+  const navigate = useNavigate()
+  const location = useLocation()
   const [booking, setBooking] = useState({
     pickup: { address: '', lat: null, lng: null },
     drop: { address: '', lat: null, lng: null },
     vehicleType: 'car',
     specialNote: '',
   })
-  const [confirmation, setConfirmation] = useState(null)
+  const [confirmation, setConfirmation] = useState(location.state?.acceptedBooking || null)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
-  const totalKm = calculateDistanceKm(booking.pickup, booking.drop)
+  const [routeInfo, setRouteInfo] = useState({ loading: false, distance: null, duration: null, error: '' })
+
+  useEffect(() => {
+    let active = true
+
+    const calculateRouteDistance = () => {
+      if (!booking.pickup?.lat || !booking.pickup?.lng || !booking.drop?.lat || !booking.drop?.lng) {
+        setRouteInfo({ loading: false, distance: null, duration: null, error: '' })
+        return
+      }
+
+      if (!window.google?.maps?.DirectionsService) {
+        setRouteInfo({ loading: false, distance: null, duration: null, error: 'Google route unavailable' })
+        return
+      }
+
+      setRouteInfo({ loading: true, distance: null, duration: null, error: '' })
+      const directionsService = new window.google.maps.DirectionsService()
+
+      directionsService.route(
+        {
+          origin: { lat: booking.pickup.lat, lng: booking.pickup.lng },
+          destination: { lat: booking.drop.lat, lng: booking.drop.lng },
+          travelMode: window.google.maps.TravelMode.DRIVING,
+        },
+        (result, status) => {
+          if (!active) return
+
+          if (status !== 'OK' || !result?.routes?.[0]?.legs?.length) {
+            setRouteInfo({ loading: false, distance: null, duration: null, error: 'Route not found' })
+            return
+          }
+
+          const meters = result.routes[0].legs.reduce((total, leg) => total + (leg.distance?.value || 0), 0)
+          const seconds = result.routes[0].legs.reduce((total, leg) => total + (leg.duration?.value || 0), 0)
+          setRouteInfo({
+            loading: false,
+            distance: (meters / 1000).toFixed(1),
+            duration: formatDuration(seconds),
+            error: '',
+          })
+        },
+      )
+    }
+
+    calculateRouteDistance()
+
+    return () => {
+      active = false
+    }
+  }, [booking.pickup?.lat, booking.pickup?.lng, booking.drop?.lat, booking.drop?.lng])
 
   const confirmRide = async (event) => {
     event.preventDefault()
@@ -41,7 +94,7 @@ export function RiderDashboard({ user, logout }) {
         rideType: booking.vehicleType,
         specialNote: booking.specialNote,
       })
-      setConfirmation({ booking: data, driver: assignedDriver })
+      navigate(`/rider/booking/${data.id}`, { replace: true, state: { booking: data } })
     } catch (requestError) {
       setError(requestError.response?.data?.message || 'Could not confirm booking. Please try again.')
     } finally {
@@ -118,16 +171,17 @@ export function RiderDashboard({ user, logout }) {
               </div>
               <div className="relative mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
                 <MetricCard label="Vehicle" value={formatVehicleType(booking.vehicleType)} />
-                <MetricCard label="Total Distance" value={totalKm ? `${totalKm} km` : 'Select route'} />
+                <MetricCard label="Total Distance" value={formatRouteDistance(routeInfo)} />
+                <MetricCard label="Estimated Ride Time" value={formatRouteDuration(routeInfo)} />
               </div>
 
               {confirmation && (
                 <motion.div initial={{ opacity: 0, y: 16, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="relative mt-6 rounded-[1.5rem] border border-emerald-300/20 bg-emerald-400/10 p-5 text-emerald-50">
                   <p className="text-lg font-black">Booking confirmed</p>
-                  <p className="mt-2 text-sm leading-6">{confirmation.driver.name} is assigned and will arrive in {confirmation.driver.eta}.</p>
+                  <p className="mt-2 text-sm leading-6">{confirmation.driverName || confirmation.driver?.name || assignedDriver.name} accepted your ride.</p>
                   <div className="mt-4 rounded-2xl bg-slate-950/45 p-4 text-sm">
-                    <p className="font-black text-white">{confirmation.driver.vehicle}</p>
-                    <p className="text-emerald-100/80">Rating {confirmation.driver.rating} | Booking #{confirmation.booking.id}</p>
+                    <p className="font-black text-white">{confirmation.driverVehicleType || confirmation.driver?.vehicle || 'Vehicle assigned'}</p>
+                    <p className="text-emerald-100/80">Booking #{confirmation.id || confirmation.booking?.id}</p>
                   </div>
                 </motion.div>
               )}
@@ -166,25 +220,24 @@ function formatVehicleType(type) {
   return type.charAt(0).toUpperCase() + type.slice(1)
 }
 
-function calculateDistanceKm(pickup, drop) {
-  if (!pickup?.lat || !pickup?.lng || !drop?.lat || !drop?.lng) {
-    return null
-  }
-
-  const earthRadiusKm = 6371
-  const dLat = toRadians(drop.lat - pickup.lat)
-  const dLng = toRadians(drop.lng - pickup.lng)
-  const lat1 = toRadians(pickup.lat)
-  const lat2 = toRadians(drop.lat)
-
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) * Math.sin(dLng / 2)
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-
-  return (earthRadiusKm * c).toFixed(1)
+function formatRouteDistance(routeInfo) {
+  if (routeInfo.loading) return 'Calculating...'
+  if (routeInfo.error) return routeInfo.error
+  if (routeInfo.distance) return `${routeInfo.distance} km`
+  return 'Select route'
 }
 
-function toRadians(value) {
-  return (value * Math.PI) / 180
+function formatRouteDuration(routeInfo) {
+  if (routeInfo.loading) return 'Calculating...'
+  if (routeInfo.error) return routeInfo.error
+  return routeInfo.duration || 'Select route'
+}
+
+function formatDuration(totalSeconds) {
+  const minutes = Math.max(1, Math.round(totalSeconds / 60))
+  if (minutes < 60) return `${minutes} min`
+
+  const hours = Math.floor(minutes / 60)
+  const remainingMinutes = minutes % 60
+  return remainingMinutes ? `${hours} hr ${remainingMinutes} min` : `${hours} hr`
 }

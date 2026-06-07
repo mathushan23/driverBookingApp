@@ -1,15 +1,9 @@
 import { motion } from 'framer-motion'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { BackgroundFX } from '../../components/auth/AuthLayout'
 import { LocationPicker } from '../../components/location/LocationPicker'
 import { api } from '../../services/api'
 import { setAuthSession } from '../../services/authStorage'
-
-const requests = [
-  { rider: 'Sahan', pickup: 'Colombo Fort', destination: 'Nugegoda', fare: 'LKR 1,850' },
-  { rider: 'Maya', pickup: 'Union Place', destination: 'Bambalapitiya', fare: 'LKR 1,150' },
-  { rider: 'Ravindu', pickup: 'Kollupitiya', destination: 'Rajagiriya', fare: 'LKR 1,420' },
-]
 
 const statuses = ['AVAILABLE', 'BUSY', 'OFFLINE']
 
@@ -24,6 +18,27 @@ export function DriverDashboard({ user, logout }) {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+  const [requests, setRequests] = useState([])
+  const [loadingRequests, setLoadingRequests] = useState(false)
+
+  const loadRequests = async () => {
+    if (!user?.id) return
+    setLoadingRequests(true)
+    try {
+      const { data } = await api.get(`/bookings/driver-requests/${user.id}`)
+      setRequests(data)
+    } catch {
+      setRequests([])
+    } finally {
+      setLoadingRequests(false)
+    }
+  }
+
+  useEffect(() => {
+    loadRequests()
+    const timer = setInterval(loadRequests, 5000)
+    return () => clearInterval(timer)
+  }, [user?.id])
 
   const saveLocation = async () => {
     setMessage('')
@@ -44,10 +59,23 @@ export function DriverDashboard({ user, logout }) {
       setAuthSession(updatedUser)
       setSavedAddress(updatedUser.address)
       setMessage('Driver location saved successfully.')
+      loadRequests()
     } catch (requestError) {
       setError(requestError.response?.data?.message || 'Could not save driver location.')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const acceptRide = async (bookingId) => {
+    setMessage('')
+    setError('')
+    try {
+      await api.patch(`/bookings/${bookingId}/accept`, null, { params: { driverId: user.id } })
+      setMessage('Ride accepted. The rider has been notified.')
+      loadRequests()
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || 'Could not accept this ride.')
     }
   }
 
@@ -104,18 +132,22 @@ export function DriverDashboard({ user, logout }) {
 
           <section className="rounded-[2rem] border border-white/15 bg-white/10 p-5 shadow-2xl shadow-blue-950/30 backdrop-blur-xl">
             <h2 className="text-2xl font-black">Assigned Ride Requests</h2>
+            <p className="mt-2 text-sm text-blue-100/70">Only pending rides within 5 km of your saved current location appear here.</p>
             <div className="mt-5 grid gap-4">
+              {loadingRequests && <p className="rounded-2xl border border-white/10 bg-white/10 p-4 text-sm font-bold text-blue-100">Checking nearby ride requests...</p>}
+              {!loadingRequests && requests.length === 0 && <p className="rounded-2xl border border-white/10 bg-white/10 p-4 text-sm font-bold text-blue-100">No nearby pending ride requests. Save your current location to receive rides near you.</p>}
               {requests.map((request, index) => (
-                <motion.article key={request.rider} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.08 }} className="rounded-2xl border border-white/10 bg-white/10 p-4">
+                <motion.article key={request.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.08 }} className="rounded-2xl border border-white/10 bg-white/10 p-4">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                      <p className="text-lg font-black">{request.rider}</p>
-                      <p className="mt-1 text-sm text-blue-100/70">{request.pickup} to {request.destination}</p>
+                      <p className="text-lg font-black">Booking #{request.id}</p>
+                      <p className="mt-1 text-sm text-blue-100/70">{request.pickupAddress}</p>
+                      <p className="mt-1 text-sm text-blue-100/70">to {request.dropAddress}</p>
                     </div>
-                    <div className="font-black text-blue-300">{request.fare}</div>
+                    <div className="font-black text-blue-300">{formatVehicleType(request.vehicleType)}</div>
                   </div>
                   <div className="mt-4 flex gap-3">
-                    <button className="rounded-xl bg-blue-500 px-4 py-2 text-sm font-black text-white hover:bg-blue-400">Accept</button>
+                    <button onClick={() => acceptRide(request.id)} className="rounded-xl bg-blue-500 px-4 py-2 text-sm font-black text-white hover:bg-blue-400">Accept</button>
                     <button className="rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-black text-blue-100 hover:bg-white/15">Decline</button>
                   </div>
                 </motion.article>
@@ -126,4 +158,10 @@ export function DriverDashboard({ user, logout }) {
       </section>
     </main>
   )
+}
+
+function formatVehicleType(type = '') {
+  if (type === 'motor bike') return 'Motor Bike'
+  if (type === 'three wheeler') return 'Three Wheeler'
+  return type.charAt(0).toUpperCase() + type.slice(1)
 }

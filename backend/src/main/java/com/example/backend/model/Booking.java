@@ -44,7 +44,9 @@ public class Booking {
     private String specialNote;
 
     @Column(nullable = false)
-    private String status = "CONFIRMED";
+    private String status = "PENDING";
+
+    private Long driverId;
 
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
@@ -132,5 +134,17 @@ public class Booking {
 
     public String getStatus() {
         return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public Long getDriverId() {
+        return driverId;
+    }
+
+    public void setDriverId(Long driverId) {
+        this.driverId = driverId;
     }
 }
