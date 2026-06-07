@@ -11,6 +11,9 @@ public record AuthResponse(
         String phone,
         String vehicleType,
         String vehicleNumber,
+        Double latitude,
+        Double longitude,
+        String address,
         String token
 ) {
 }

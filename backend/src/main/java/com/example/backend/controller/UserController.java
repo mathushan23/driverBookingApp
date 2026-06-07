@@ -1,6 +1,7 @@
 package com.example.backend.controller;
 
 import com.example.backend.model.AuthResponse;
+import com.example.backend.model.LocationRequest;
 import com.example.backend.model.OnboardingRequest;
 import com.example.backend.service.UserService;
 import jakarta.validation.Valid;
@@ -26,5 +27,13 @@ public class UserController {
             @Valid @RequestBody OnboardingRequest request
     ) {
         return userService.completeOnboarding(userId, request);
+    }
+
+    @PatchMapping("/{userId}/driver-location")
+    public AuthResponse updateDriverLocation(
+            @PathVariable Long userId,
+            @Valid @RequestBody LocationRequest request
+    ) {
+        return userService.updateDriverLocation(userId, request);
     }
 }

@@ -61,6 +61,9 @@ public class AuthService {
                 user.getPhone(),
                 user.getVehicleType(),
                 user.getVehicleNumber(),
+                user.getLatitude(),
+                user.getLongitude(),
+                user.getAddress(),
                 authTokenUtil.generateToken()
         );
     }

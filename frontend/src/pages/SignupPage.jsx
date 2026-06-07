@@ -1,17 +1,13 @@
-import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { AuthShell } from '../components/layout/AuthShell'
 import { Button, FormHeader, Input } from '../components/ui/FormControls'
 import { api } from '../services/api'
+import { clearAuthSession } from '../services/authStorage'
+import { useState } from 'react'
 
-export function SignupPage({ saveUser }) {
+export function SignupPage() {
   const navigate = useNavigate()
-  const [form, setForm] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-  })
+  const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -26,15 +22,13 @@ export function SignupPage({ saveUser }) {
     setError('')
 
     try {
-      const { data: nextUser } = await api.post('/auth/signup', {
+      await api.post('/auth/signup', {
         name: form.name,
         email: form.email,
         password: form.password,
       })
-
-      api.defaults.headers.common.Authorization = `Bearer ${nextUser.token}`
-      saveUser(nextUser)
-      navigate('/onboarding')
+      clearAuthSession()
+      navigate('/login', { replace: true, state: { message: 'Account created. Login to continue.' } })
     } catch (requestError) {
       setError(requestError.response?.data?.message || 'Signup failed. Please try again.')
     } finally {
@@ -44,17 +38,12 @@ export function SignupPage({ saveUser }) {
 
   return (
     <AuthShell mode="signup">
-      <FormHeader title="Join GoRide" subtitle="Create your account and choose how you want to travel or drive." />
+      <FormHeader title="Join GoRide" subtitle="Create your account. You will choose Rider or Driver after your first login." />
       <form className="auth-form" onSubmit={submit}>
         <Input label="Full Name" value={form.name} onChange={(name) => setForm({ ...form, name })} />
         <Input label="Email Address" type="email" value={form.email} onChange={(email) => setForm({ ...form, email })} />
         <Input label="Password" type="password" value={form.password} onChange={(password) => setForm({ ...form, password })} />
-        <Input
-          label="Confirm Password"
-          type="password"
-          value={form.confirmPassword}
-          onChange={(confirmPassword) => setForm({ ...form, confirmPassword })}
-        />
+        <Input label="Confirm Password" type="password" value={form.confirmPassword} onChange={(confirmPassword) => setForm({ ...form, confirmPassword })} />
         {error && <p className="form-error">{error}</p>}
         <Button label={loading ? 'Creating account...' : 'Create GoRide Account'} disabled={loading} />
       </form>

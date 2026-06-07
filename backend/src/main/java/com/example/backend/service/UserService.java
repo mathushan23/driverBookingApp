@@ -1,6 +1,7 @@
 package com.example.backend.service;
 
 import com.example.backend.model.AuthResponse;
+import com.example.backend.model.LocationRequest;
 import com.example.backend.model.OnboardingRequest;
 import com.example.backend.model.UserAccount;
 import com.example.backend.repository.UserAccountRepository;
@@ -30,6 +31,21 @@ public class UserService {
         user.setVehicleType(trimToNull(request.vehicleType()));
         user.setVehicleNumber(trimToNull(request.vehicleNumber()));
         user.setOnboardingComplete(true);
+
+        return authService.toResponse(users.save(user));
+    }
+
+    public AuthResponse updateDriverLocation(Long userId, LocationRequest request) {
+        UserAccount user = users.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        if (!"driver".equals(user.getRole())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only drivers can update driver location");
+        }
+
+        user.setLatitude(request.latitude());
+        user.setLongitude(request.longitude());
+        user.setAddress(request.address().trim());
 
         return authService.toResponse(users.save(user));
     }

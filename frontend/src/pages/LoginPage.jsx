@@ -1,14 +1,16 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { AuthShell } from '../components/layout/AuthShell'
 import { Button, FormHeader, Input } from '../components/ui/FormControls'
 import { api } from '../services/api'
+import { dashboardPathFor, setAuthSession } from '../services/authStorage'
+import { useState } from 'react'
 
 export function LoginPage({ saveUser }) {
   const navigate = useNavigate()
-  const [form, setForm] = useState({ email: '', password: '', remember: true })
-  const [loading, setLoading] = useState(false)
+  const location = useLocation()
+  const [form, setForm] = useState({ email: '', password: '' })
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
   const submit = async (event) => {
     event.preventDefault()
@@ -16,14 +18,17 @@ export function LoginPage({ saveUser }) {
     setError('')
 
     try {
-      const { data: nextUser } = await api.post('/auth/login', {
-        email: form.email,
-        password: form.password,
-      })
+      const { data: user } = await api.post('/auth/login', form)
+      setAuthSession(user)
+      saveUser(user)
 
-      api.defaults.headers.common.Authorization = `Bearer ${nextUser.token}`
-      saveUser(nextUser)
-      navigate(nextUser.role === 'admin' ? '/dashboard' : '/onboarding')
+      if (user.role === 'admin') {
+        navigate('/admin/dashboard', { replace: true })
+      } else if (!user.onboardingComplete) {
+        navigate('/onboarding', { replace: true })
+      } else {
+        navigate(dashboardPathFor(user.role), { replace: true })
+      }
     } catch (requestError) {
       setError(requestError.response?.data?.message || 'Login failed. Check your email and password.')
     } finally {
@@ -34,22 +39,12 @@ export function LoginPage({ saveUser }) {
   return (
     <AuthShell mode="login">
       <FormHeader title="Welcome Back" subtitle="Access your rides, routes, and bookings with GoRide." />
+      {location.state?.message && <p className="form-success">{location.state.message}</p>}
       <form className="auth-form" onSubmit={submit}>
         <Input label="Email Address" type="email" value={form.email} onChange={(email) => setForm({ ...form, email })} />
         <Input label="Password" type="password" value={form.password} onChange={(password) => setForm({ ...form, password })} />
-        <div className="form-row">
-          <label className="checkbox">
-            <input
-              type="checkbox"
-              checked={form.remember}
-              onChange={(event) => setForm({ ...form, remember: event.target.checked })}
-            />
-            Remember Me
-          </label>
-          <a href="#forgot">Forgot Password</a>
-        </div>
         {error && <p className="form-error">{error}</p>}
-        <Button label={loading ? 'Signing in...' : 'Login'} disabled={loading} />
+        <Button label={loading ? 'Signing in...' : 'Start Riding'} disabled={loading} />
       </form>
       <p className="auth-switch">
         New passenger or driver? <Link to="/signup">Create your GoRide account</Link>

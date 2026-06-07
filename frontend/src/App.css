@@ -1519,3 +1519,11 @@ svg {
     flex-direction: column;
   }
 }
+
+.form-success {
+  margin: 0 0 12px;
+  color: #bbf7d0;
+  font-weight: 800;
+  text-align: center;
+}
+

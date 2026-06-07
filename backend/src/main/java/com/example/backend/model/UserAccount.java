@@ -42,6 +42,12 @@ public class UserAccount {
 
     private String vehicleNumber;
 
+    private Double latitude;
+
+    private Double longitude;
+
+    private String address;
+
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -142,5 +148,29 @@ public class UserAccount {
 
     public void setVehicleNumber(String vehicleNumber) {
         this.vehicleNumber = vehicleNumber;
+    }
+
+    public Double getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(Double latitude) {
+        this.latitude = latitude;
+    }
+
+    public Double getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(Double longitude) {
+        this.longitude = longitude;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
     }
 }

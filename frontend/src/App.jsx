@@ -1,67 +1,102 @@
 import { useState } from 'react'
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
-import './App.css'
-import { DashboardPage } from './pages/DashboardPage'
+import { BrowserRouter, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
+import { AdminDashboard } from './pages/AdminDashboard'
+import { DashboardRedirect } from './pages/DashboardRedirect'
+import { DriverDashboard } from './pages/driver/DriverDashboard'
+import { DriverWelcomePage } from './pages/driver/DriverWelcomePage'
 import { LoginPage } from './pages/LoginPage'
 import { OnboardingPage } from './pages/OnboardingPage'
+import { RiderDashboard } from './pages/rider/RiderDashboard'
+import { RiderWelcomePage } from './pages/rider/RiderWelcomePage'
 import { SignupPage } from './pages/SignupPage'
-import { WelcomePage } from './pages/WelcomePage'
+import { ProtectedRoute, RoleRoute } from './routes/ProtectedRoute'
+import { clearAuthSession, getStoredUser } from './services/authStorage'
+import './App.css'
 
 function App() {
-  const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem('goride:user')
-    return saved ? JSON.parse(saved) : null
-  })
+  const [user, setUser] = useState(() => getStoredUser())
 
-  const saveUser = (nextUser) => {
-    localStorage.setItem('goride:user', JSON.stringify(nextUser))
-    setUser(nextUser)
-  }
-
-  const logout = () => {
-    localStorage.removeItem('goride:user')
-    setUser(null)
-  }
+  const saveUser = (nextUser) => setUser(nextUser)
 
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Navigate to={user ? '/dashboard' : '/login'} />} />
-        <Route path="/signup" element={<SignupPage saveUser={saveUser} />} />
-        <Route path="/login" element={<LoginPage saveUser={saveUser} />} />
-        <Route
-          path="/onboarding"
-          element={
-            <Protected user={user}>
-              <OnboardingPage user={user} saveUser={saveUser} />
-            </Protected>
-          }
-        />
-        <Route
-          path="/welcome"
-          element={
-            <Protected user={user}>
-              <WelcomePage user={user} />
-            </Protected>
-          }
-        />
-        <Route
-          path="/dashboard"
-          element={
-            <Protected user={user}>
-              <DashboardPage user={user} logout={logout} />
-            </Protected>
-          }
-        />
-      </Routes>
+      <AppRoutes user={user} saveUser={saveUser} />
     </BrowserRouter>
   )
 }
 
-function Protected({ user, children }) {
-  if (!user) return <Navigate to="/login" />
-  if (!user.onboardingComplete && user.role !== 'admin') return <Navigate to="/onboarding" />
-  return children
+function AppRoutes({ user, saveUser }) {
+  const navigate = useNavigate()
+
+  const logout = () => {
+    clearAuthSession()
+    saveUser(null)
+    navigate('/login', { replace: true })
+  }
+
+  return (
+    <Routes>
+      <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route path="/signup" element={<SignupPage />} />
+      <Route path="/login" element={<LoginPage saveUser={saveUser} />} />
+      <Route path="/dashboard" element={<DashboardRedirect user={user} />} />
+
+      <Route
+        path="/onboarding"
+        element={
+          <ProtectedRoute user={user}>
+            <OnboardingPage user={user} saveUser={saveUser} />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/rider/welcome"
+        element={
+          <RoleRoute user={user} allowedRole="rider">
+            <RiderWelcomePage />
+          </RoleRoute>
+        }
+      />
+      <Route
+        path="/rider/dashboard"
+        element={
+          <RoleRoute user={user} allowedRole="rider">
+            <RiderDashboard user={user} logout={logout} />
+          </RoleRoute>
+        }
+      />
+
+      <Route
+        path="/driver/welcome"
+        element={
+          <RoleRoute user={user} allowedRole="driver">
+            <DriverWelcomePage />
+          </RoleRoute>
+        }
+      />
+      <Route
+        path="/driver/dashboard"
+        element={
+          <RoleRoute user={user} allowedRole="driver">
+            <DriverDashboard user={user} logout={logout} />
+          </RoleRoute>
+        }
+      />
+
+      <Route
+        path="/admin/dashboard"
+        element={
+          <RoleRoute user={user} allowedRole="admin">
+            <AdminDashboard user={user} logout={logout} />
+          </RoleRoute>
+        }
+      />
+
+      <Route path="*" element={<Navigate to="/login" replace />} />
+    </Routes>
+  )
 }
 
 export default App
+
