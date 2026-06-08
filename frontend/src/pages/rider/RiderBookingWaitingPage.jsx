@@ -11,6 +11,7 @@ export function RiderBookingWaitingPage({ user }) {
   const [booking, setBooking] = useState(location.state?.booking || null)
   const [error, setError] = useState('')
   const [canceling, setCanceling] = useState(false)
+  const [driverEta, setDriverEta] = useState('')
 
   useEffect(() => {
     let active = true
@@ -42,6 +43,33 @@ export function RiderBookingWaitingPage({ user }) {
     }
   }, [bookingId, navigate])
 
+  useEffect(() => {
+    if (
+      booking?.status !== 'ACCEPTED' ||
+      !booking.driverLatitude ||
+      !booking.driverLongitude ||
+      !booking.pickupLatitude ||
+      !booking.pickupLongitude ||
+      !window.google?.maps?.DirectionsService
+    ) {
+      return
+    }
+
+    const directionsService = new window.google.maps.DirectionsService()
+    directionsService.route(
+      {
+        origin: { lat: booking.driverLatitude, lng: booking.driverLongitude },
+        destination: { lat: booking.pickupLatitude, lng: booking.pickupLongitude },
+        travelMode: window.google.maps.TravelMode.DRIVING,
+      },
+      (result, status) => {
+        if (status === 'OK' && result?.routes?.[0]?.legs?.[0]?.duration?.text) {
+          setDriverEta(result.routes[0].legs[0].duration.text)
+        }
+      },
+    )
+  }, [booking])
+
   const cancelRide = async () => {
     setCanceling(true)
     setError('')
@@ -72,16 +100,28 @@ export function RiderBookingWaitingPage({ user }) {
               </h1>
               <p className="mt-5 text-base leading-8 text-blue-100/75">
                 {accepted
-                  ? `${booking.driverName || 'A driver'} accepted your ride. You can return to your dashboard.`
+                  ? `${booking.driverName || 'A driver'} accepted your ride. Status: ${booking.status}.`
                   : canceled
                     ? 'Your booking was canceled before a driver accepted it.'
                     : 'We are sending your request only to drivers within 5 km of your pickup location.'}
               </p>
 
               <div className="mt-7 rounded-[1.5rem] border border-white/10 bg-white/10 p-5">
-                <p className="text-xs font-black uppercase tracking-[0.25em] text-blue-200/70">Nearby drivers</p>
-                <p className="mt-2 text-3xl font-black text-white">{booking?.nearbyDriverCount ?? 0}</p>
-                <p className="mt-1 text-sm text-blue-100/70">Drivers currently eligible to receive this ride request.</p>
+                <p className="text-xs font-black uppercase tracking-[0.25em] text-blue-200/70">{accepted ? 'Driver details' : 'Nearby drivers'}</p>
+                {accepted ? (
+                  <div className="mt-3 space-y-2 text-sm font-bold text-blue-50">
+                    <p>{booking.driverName}</p>
+                    <p>{booking.driverPhone || 'Phone not available'}</p>
+                    <p>{formatVehicleType(booking.driverVehicleType)} | {booking.driverVehicleNumber}</p>
+                    <p>Driver arrival: {driverEta || 'Calculating...'}</p>
+                    <p>Price: LKR {Number(booking.price || 0).toFixed(0)}</p>
+                  </div>
+                ) : (
+                  <>
+                    <p className="mt-2 text-3xl font-black text-white">{booking?.nearbyDriverCount ?? 0}</p>
+                    <p className="mt-1 text-sm text-blue-100/70">Available matching drivers within 5 km.</p>
+                  </>
+                )}
               </div>
 
               {error && <p className="mt-5 rounded-2xl border border-amber-300/30 bg-amber-500/10 px-4 py-3 text-sm font-bold text-amber-100">{error}</p>}
@@ -112,4 +152,10 @@ export function RiderBookingWaitingPage({ user }) {
       </section>
     </main>
   )
+}
+
+function formatVehicleType(type = '') {
+  if (type === 'motor bike') return 'Motor Bike'
+  if (type === 'three wheeler') return 'Three Wheeler'
+  return type ? type.charAt(0).toUpperCase() + type.slice(1) : 'Vehicle'
 }

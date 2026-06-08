@@ -43,6 +43,10 @@ public class Booking {
 
     private String specialNote;
 
+    private Double distanceKm;
+
+    private Double price;
+
     @Column(nullable = false)
     private String status = "PENDING";
 
@@ -130,6 +134,22 @@ public class Booking {
 
     public void setSpecialNote(String specialNote) {
         this.specialNote = specialNote;
+    }
+
+    public Double getDistanceKm() {
+        return distanceKm;
+    }
+
+    public void setDistanceKm(Double distanceKm) {
+        this.distanceKm = distanceKm;
+    }
+
+    public Double getPrice() {
+        return price;
+    }
+
+    public void setPrice(Double price) {
+        this.price = price;
     }
 
     public String getStatus() {

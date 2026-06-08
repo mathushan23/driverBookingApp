@@ -64,6 +64,7 @@ public class AuthService {
                 user.getLatitude(),
                 user.getLongitude(),
                 user.getAddress(),
+                user.getDriverStatus(),
                 authTokenUtil.generateToken()
         );
     }

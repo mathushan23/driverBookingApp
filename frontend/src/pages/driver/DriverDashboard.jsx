@@ -8,7 +8,7 @@ import { setAuthSession } from '../../services/authStorage'
 const statuses = ['AVAILABLE', 'BUSY', 'OFFLINE']
 
 export function DriverDashboard({ user, logout }) {
-  const [status, setStatus] = useState('AVAILABLE')
+  const [status, setStatus] = useState(user?.driverStatus || 'OFFLINE')
   const [driverLocation, setDriverLocation] = useState({
     address: user?.address || '',
     lat: user?.latitude || null,
@@ -20,6 +20,7 @@ export function DriverDashboard({ user, logout }) {
   const [saving, setSaving] = useState(false)
   const [requests, setRequests] = useState([])
   const [loadingRequests, setLoadingRequests] = useState(false)
+  const [acceptedRide, setAcceptedRide] = useState(null)
 
   const loadRequests = async () => {
     if (!user?.id) return
@@ -67,11 +68,28 @@ export function DriverDashboard({ user, logout }) {
     }
   }
 
+  const updateStatus = async (nextStatus) => {
+    setStatus(nextStatus)
+    setMessage('')
+    setError('')
+    try {
+      const { data: updatedUser } = await api.patch(`/users/${user.id}/driver-status`, { status: nextStatus })
+      setAuthSession(updatedUser)
+      setMessage(`Status updated to ${nextStatus}.`)
+      loadRequests()
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || 'Could not update driver status.')
+    }
+  }
+
   const acceptRide = async (bookingId) => {
     setMessage('')
     setError('')
     try {
       await api.patch(`/bookings/${bookingId}/accept`, null, { params: { driverId: user.id } })
+      const { data } = await api.get(`/bookings/${bookingId}`)
+      setAcceptedRide(data)
+      setStatus('BUSY')
       setMessage('Ride accepted. The rider has been notified.')
       loadRequests()
     } catch (requestError) {
@@ -101,7 +119,7 @@ export function DriverDashboard({ user, logout }) {
                   <motion.button
                     key={item}
                     type="button"
-                    onClick={() => setStatus(item)}
+                    onClick={() => updateStatus(item)}
                     whileHover={{ x: 5 }}
                     className={`rounded-2xl border px-4 py-4 text-left font-black transition ${status === item ? 'border-blue-300 bg-blue-500/25 text-white shadow-lg shadow-blue-500/20' : 'border-white/15 bg-white/10 text-blue-100 hover:border-blue-300/50'}`}
                   >
@@ -133,6 +151,20 @@ export function DriverDashboard({ user, logout }) {
           <section className="rounded-[2rem] border border-white/15 bg-white/10 p-5 shadow-2xl shadow-blue-950/30 backdrop-blur-xl">
             <h2 className="text-2xl font-black">Assigned Ride Requests</h2>
             <p className="mt-2 text-sm text-blue-100/70">Only pending rides within 5 km of your saved current location appear here.</p>
+            {acceptedRide && (
+              <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mt-5 rounded-[1.5rem] border border-emerald-300/20 bg-emerald-500/10 p-5">
+                <p className="text-xs font-black uppercase tracking-[0.24em] text-emerald-100/70">Accepted ride</p>
+                <h3 className="mt-2 text-xl font-black">Rider: {acceptedRide.riderName}</h3>
+                <div className="mt-3 space-y-2 text-sm font-bold text-emerald-50">
+                  <p>Mobile: {acceptedRide.riderMobile || 'Not available'}</p>
+                  <p>Pickup: {acceptedRide.pickupAddress}</p>
+                  <p>Drop: {acceptedRide.dropAddress}</p>
+                  <p>Vehicle: {formatVehicleType(acceptedRide.vehicleType)}</p>
+                  <p>Price: LKR {Number(acceptedRide.price || 0).toFixed(0)}</p>
+                  <p>Status: {acceptedRide.status}</p>
+                </div>
+              </motion.div>
+            )}
             <div className="mt-5 grid gap-4">
               {loadingRequests && <p className="rounded-2xl border border-white/10 bg-white/10 p-4 text-sm font-bold text-blue-100">Checking nearby ride requests...</p>}
               {!loadingRequests && requests.length === 0 && <p className="rounded-2xl border border-white/10 bg-white/10 p-4 text-sm font-bold text-blue-100">No nearby pending ride requests. Save your current location to receive rides near you.</p>}
@@ -141,10 +173,14 @@ export function DriverDashboard({ user, logout }) {
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <p className="text-lg font-black">Booking #{request.id}</p>
+                      <p className="mt-1 text-sm text-blue-100/70">Rider: {request.riderName || 'Rider'} {request.riderMobile ? `| ${request.riderMobile}` : ''}</p>
                       <p className="mt-1 text-sm text-blue-100/70">{request.pickupAddress}</p>
                       <p className="mt-1 text-sm text-blue-100/70">to {request.dropAddress}</p>
                     </div>
-                    <div className="font-black text-blue-300">{formatVehicleType(request.vehicleType)}</div>
+                    <div className="text-right font-black text-blue-300">
+                      <p>{formatVehicleType(request.vehicleType)}</p>
+                      <p>LKR {Number(request.price || 0).toFixed(0)}</p>
+                    </div>
                   </div>
                   <div className="mt-4 flex gap-3">
                     <button onClick={() => acceptRide(request.id)} className="rounded-xl bg-blue-500 px-4 py-2 text-sm font-black text-white hover:bg-blue-400">Accept</button>

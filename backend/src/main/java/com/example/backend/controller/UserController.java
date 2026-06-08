@@ -1,6 +1,7 @@
 package com.example.backend.controller;
 
 import com.example.backend.model.AuthResponse;
+import com.example.backend.model.DriverStatusRequest;
 import com.example.backend.model.LocationRequest;
 import com.example.backend.model.OnboardingRequest;
 import com.example.backend.service.UserService;
@@ -35,5 +36,13 @@ public class UserController {
             @Valid @RequestBody LocationRequest request
     ) {
         return userService.updateDriverLocation(userId, request);
+    }
+
+    @PatchMapping("/{userId}/driver-status")
+    public AuthResponse updateDriverStatus(
+            @PathVariable Long userId,
+            @Valid @RequestBody DriverStatusRequest request
+    ) {
+        return userService.updateDriverStatus(userId, request);
     }
 }

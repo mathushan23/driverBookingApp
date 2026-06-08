@@ -15,6 +15,7 @@ import org.springframework.web.server.ResponseStatusException;
 public class BookingService {
 
     private static final double DRIVER_MATCH_RADIUS_KM = 5.0;
+    private static final double PRICE_PER_KM = 100.0;
 
     private final BookingRepository bookings;
     private final UserAccountRepository users;
@@ -33,7 +34,12 @@ public class BookingService {
         booking.setDropLatitude(request.dropLatitude());
         booking.setDropLongitude(request.dropLongitude());
         booking.setDropAddress(request.dropAddress().trim());
-        booking.setRideType(request.rideType().trim());
+        booking.setRideType(normalizeVehicleType(request.rideType()));
+        double distanceKm = request.distanceKm() == null
+                ? distanceKm(request.pickupLatitude(), request.pickupLongitude(), request.dropLatitude(), request.dropLongitude())
+                : request.distanceKm();
+        booking.setDistanceKm(roundOneDecimal(distanceKm));
+        booking.setPrice(roundTwoDecimals(booking.getDistanceKm() * PRICE_PER_KM));
         booking.setSpecialNote(trimToNull(request.specialNote()));
         return toResponse(bookings.save(booking));
     }
@@ -56,6 +62,8 @@ public class BookingService {
 
         return bookings.findByStatusOrderByCreatedAtDesc("PENDING")
                 .stream()
+                .filter(booking -> "AVAILABLE".equals(driver.getDriverStatus()))
+                .filter(booking -> vehicleMatches(driver, booking))
                 .filter(booking -> distanceKm(
                         driver.getLatitude(),
                         driver.getLongitude(),
@@ -83,6 +91,14 @@ public class BookingService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Save your current driver location first");
         }
 
+        if (!"AVAILABLE".equals(driver.getDriverStatus())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only AVAILABLE drivers can accept rides");
+        }
+
+        if (!vehicleMatches(driver, booking)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This ride requires a matching vehicle type");
+        }
+
         double distance = distanceKm(driver.getLatitude(), driver.getLongitude(), booking.getPickupLatitude(), booking.getPickupLongitude());
         if (distance > DRIVER_MATCH_RADIUS_KM) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only drivers within 5 km of pickup can accept this ride");
@@ -90,6 +106,8 @@ public class BookingService {
 
         booking.setDriverId(driverId);
         booking.setStatus("ACCEPTED");
+        driver.setDriverStatus("BUSY");
+        users.save(driver);
         return toResponse(bookings.save(booking));
     }
 
@@ -117,14 +135,21 @@ public class BookingService {
         UserAccount driver = booking.getDriverId() == null
                 ? null
                 : users.findById(booking.getDriverId()).orElse(null);
+        UserAccount rider = users.findById(booking.getRiderId()).orElse(null);
 
         return new BookingResponse(
                 booking.getId(),
                 booking.getRiderId(),
+                rider == null ? null : rider.getName(),
+                rider == null ? null : rider.getMobile(),
                 booking.getDriverId(),
                 driver == null ? null : driver.getName(),
+                driver == null ? null : driver.getPhone(),
                 driver == null ? null : driver.getVehicleType(),
                 driver == null ? null : driver.getVehicleNumber(),
+                driver == null ? null : driver.getLatitude(),
+                driver == null ? null : driver.getLongitude(),
+                driver == null ? null : driver.getAddress(),
                 booking.getPickupLatitude(),
                 booking.getPickupLongitude(),
                 booking.getPickupAddress(),
@@ -132,6 +157,8 @@ public class BookingService {
                 booking.getDropLongitude(),
                 booking.getDropAddress(),
                 booking.getRideType(),
+                booking.getDistanceKm(),
+                booking.getPrice(),
                 booking.getSpecialNote(),
                 booking.getStatus(),
                 countNearbyDrivers(booking)
@@ -142,6 +169,8 @@ public class BookingService {
         return (int) users.findAll()
                 .stream()
                 .filter(user -> "driver".equals(user.getRole()))
+                .filter(user -> "AVAILABLE".equals(user.getDriverStatus()))
+                .filter(user -> vehicleMatches(user, booking))
                 .filter(user -> user.getLatitude() != null && user.getLongitude() != null)
                 .filter(user -> distanceKm(
                         user.getLatitude(),
@@ -150,6 +179,22 @@ public class BookingService {
                         booking.getPickupLongitude()
                 ) <= DRIVER_MATCH_RADIUS_KM)
                 .count();
+    }
+
+    private boolean vehicleMatches(UserAccount driver, Booking booking) {
+        String driverVehicle = normalizeVehicleType(driver.getVehicleType());
+        String requestedVehicle = normalizeVehicleType(booking.getRideType());
+        return driverVehicle != null
+                && requestedVehicle != null
+                && driverVehicle.equals(requestedVehicle);
+    }
+
+    private double roundOneDecimal(double value) {
+        return Math.round(value * 10.0) / 10.0;
+    }
+
+    private double roundTwoDecimals(double value) {
+        return Math.round(value * 100.0) / 100.0;
     }
 
     private double distanceKm(double lat1, double lng1, double lat2, double lng2) {
@@ -170,5 +215,30 @@ public class BookingService {
             return null;
         }
         return value.trim();
+    }
+
+    private String normalizeVehicleType(String value) {
+        String normalized = trimToNull(value);
+        if (normalized == null) {
+            return null;
+        }
+
+        normalized = normalized.toLowerCase().replace("-", " ").replace("_", " ").trim();
+        normalized = normalized.replaceAll("\\s+", " ");
+
+        if (normalized.equals("motorbike") || normalized.equals("moterbike") || normalized.equals("bike")) {
+            return "motor bike";
+        }
+        if (normalized.equals("threewheeler") || normalized.equals("three wheller") || normalized.equals("tuk") || normalized.equals("tuk tuk")) {
+            return "three wheeler";
+        }
+        if (normalized.equals("car")) {
+            return "car";
+        }
+        if (normalized.equals("van")) {
+            return "van";
+        }
+
+        return normalized;
     }
 }

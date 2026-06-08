@@ -92,6 +92,7 @@ export function RiderDashboard({ user, logout }) {
         dropLongitude: booking.drop.lng,
         dropAddress: booking.drop.address,
         rideType: booking.vehicleType,
+        distanceKm: routeInfo.distance ? Number(routeInfo.distance) : null,
         specialNote: booking.specialNote,
       })
       navigate(`/rider/booking/${data.id}`, { replace: true, state: { booking: data } })
@@ -173,6 +174,7 @@ export function RiderDashboard({ user, logout }) {
                 <MetricCard label="Vehicle" value={formatVehicleType(booking.vehicleType)} />
                 <MetricCard label="Total Distance" value={formatRouteDistance(routeInfo)} />
                 <MetricCard label="Estimated Ride Time" value={formatRouteDuration(routeInfo)} />
+                <MetricCard label="Ride Price" value={formatPrice(routeInfo)} />
               </div>
 
               {confirmation && (
@@ -231,6 +233,13 @@ function formatRouteDuration(routeInfo) {
   if (routeInfo.loading) return 'Calculating...'
   if (routeInfo.error) return routeInfo.error
   return routeInfo.duration || 'Select route'
+}
+
+function formatPrice(routeInfo) {
+  if (routeInfo.loading) return 'Calculating...'
+  if (routeInfo.error) return routeInfo.error
+  if (!routeInfo.distance) return 'Select route'
+  return `LKR ${(Number(routeInfo.distance) * 100).toFixed(0)}`
 }
 
 function formatDuration(totalSeconds) {

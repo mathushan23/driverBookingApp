@@ -48,6 +48,8 @@ public class UserAccount {
 
     private String address;
 
+    private String driverStatus = "OFFLINE";
+
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -172,5 +174,13 @@ public class UserAccount {
 
     public void setAddress(String address) {
         this.address = address;
+    }
+
+    public String getDriverStatus() {
+        return driverStatus;
+    }
+
+    public void setDriverStatus(String driverStatus) {
+        this.driverStatus = driverStatus;
     }
 }

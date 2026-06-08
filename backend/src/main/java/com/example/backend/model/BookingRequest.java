@@ -28,6 +28,8 @@ public record BookingRequest(
         @NotBlank(message = "Ride type is required")
         String rideType,
 
+        Double distanceKm,
+
         String specialNote
 ) {
 }
