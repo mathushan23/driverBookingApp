@@ -50,4 +50,9 @@ public class BookingController {
     public BookingResponse cancelBooking(@PathVariable Long bookingId, @RequestParam Long riderId) {
         return bookingService.cancelBooking(bookingId, riderId);
     }
+
+    @PatchMapping("/{bookingId}/complete")
+    public BookingResponse completeBooking(@PathVariable Long bookingId, @RequestParam Long driverId) {
+        return bookingService.completeBooking(bookingId, driverId);
+    }
 }

@@ -126,6 +126,25 @@ public class BookingService {
         return toResponse(bookings.save(booking));
     }
 
+    public BookingResponse completeBooking(Long bookingId, Long driverId) {
+        Booking booking = findBooking(bookingId);
+        UserAccount driver = users.findById(driverId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Driver not found"));
+
+        if (!driverId.equals(booking.getDriverId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the assigned driver can complete this ride");
+        }
+
+        if (!"ACCEPTED".equals(booking.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Only accepted rides can be completed");
+        }
+
+        booking.setStatus("COMPLETED");
+        driver.setDriverStatus("AVAILABLE");
+        users.save(driver);
+        return toResponse(bookings.save(booking));
+    }
+
     private Booking findBooking(Long bookingId) {
         return bookings.findById(bookingId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
