@@ -36,6 +36,16 @@ public class BookingController {
         return bookingService.getBooking(bookingId);
     }
 
+    @GetMapping("/rider-history/{riderId}")
+    public List<BookingResponse> getRiderHistory(@PathVariable Long riderId) {
+        return bookingService.getRiderHistory(riderId);
+    }
+
+    @GetMapping("/driver-history/{driverId}")
+    public List<BookingResponse> getDriverHistory(@PathVariable Long driverId) {
+        return bookingService.getDriverHistory(driverId);
+    }
+
     @GetMapping("/driver-requests/{driverId}")
     public List<BookingResponse> getNearbyPendingRequests(@PathVariable Long driverId) {
         return bookingService.getNearbyPendingRequests(driverId);

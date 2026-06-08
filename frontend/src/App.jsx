@@ -3,11 +3,15 @@ import { BrowserRouter, Navigate, Route, Routes, useNavigate } from 'react-route
 import { AdminDashboard } from './pages/AdminDashboard'
 import { DashboardRedirect } from './pages/DashboardRedirect'
 import { DriverDashboard } from './pages/driver/DriverDashboard'
+import { DriverRideDetailsPage } from './pages/driver/DriverRideDetailsPage'
+import { DriverRideHistoryPage } from './pages/driver/DriverRideHistoryPage'
 import { DriverWelcomePage } from './pages/driver/DriverWelcomePage'
 import { LoginPage } from './pages/LoginPage'
 import { OnboardingPage } from './pages/OnboardingPage'
 import { RiderDashboard } from './pages/rider/RiderDashboard'
 import { RiderBookingWaitingPage } from './pages/rider/RiderBookingWaitingPage'
+import { RiderRideDetailsPage } from './pages/rider/RiderRideDetailsPage'
+import { RiderRideHistoryPage } from './pages/rider/RiderRideHistoryPage'
 import { RiderWelcomePage } from './pages/rider/RiderWelcomePage'
 import { SignupPage } from './pages/SignupPage'
 import { ProtectedRoute, RoleRoute } from './routes/ProtectedRoute'
@@ -75,6 +79,22 @@ function AppRoutes({ user, saveUser }) {
           </RoleRoute>
         }
       />
+      <Route
+        path="/rider/history"
+        element={
+          <RoleRoute user={user} allowedRole="rider">
+            <RiderRideHistoryPage user={user} />
+          </RoleRoute>
+        }
+      />
+      <Route
+        path="/rider/rides/:bookingId"
+        element={
+          <RoleRoute user={user} allowedRole="rider">
+            <RiderRideDetailsPage />
+          </RoleRoute>
+        }
+      />
 
       <Route
         path="/driver/welcome"
@@ -89,6 +109,22 @@ function AppRoutes({ user, saveUser }) {
         element={
           <RoleRoute user={user} allowedRole="driver">
             <DriverDashboard user={user} logout={logout} />
+          </RoleRoute>
+        }
+      />
+      <Route
+        path="/driver/history"
+        element={
+          <RoleRoute user={user} allowedRole="driver">
+            <DriverRideHistoryPage user={user} />
+          </RoleRoute>
+        }
+      />
+      <Route
+        path="/driver/rides/:bookingId"
+        element={
+          <RoleRoute user={user} allowedRole="driver">
+            <DriverRideDetailsPage user={user} />
           </RoleRoute>
         }
       />

@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { BackgroundFX } from '../../components/auth/AuthLayout'
 import { LocationPicker } from '../../components/location/LocationPicker'
 import { api } from '../../services/api'
@@ -18,9 +18,33 @@ export function RiderDashboard({ user, logout }) {
     specialNote: '',
   })
   const [confirmation, setConfirmation] = useState(location.state?.acceptedBooking || null)
+  const [currentRide, setCurrentRide] = useState(location.state?.acceptedBooking || null)
+  const [showBookingForm, setShowBookingForm] = useState(!location.state?.acceptedBooking)
+  const [bookingFormOpened, setBookingFormOpened] = useState(false)
+  const [loadingCurrentRide, setLoadingCurrentRide] = useState(true)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const [routeInfo, setRouteInfo] = useState({ loading: false, distance: null, duration: null, error: '' })
+
+  const loadCurrentRide = async () => {
+    if (!user?.id) return
+    setLoadingCurrentRide(true)
+    try {
+      const { data } = await api.get(`/bookings/rider-history/${user.id}`)
+      const activeRide = data.find((ride) => ride.status === 'ACCEPTED')
+      setCurrentRide(activeRide || null)
+      setConfirmation(activeRide || null)
+      setShowBookingForm(activeRide && !bookingFormOpened ? false : true)
+    } finally {
+      setLoadingCurrentRide(false)
+    }
+  }
+
+  useEffect(() => {
+    loadCurrentRide()
+    const timer = setInterval(loadCurrentRide, 5000)
+    return () => clearInterval(timer)
+  }, [user?.id, bookingFormOpened])
 
   useEffect(() => {
     let active = true
@@ -117,10 +141,23 @@ export function RiderDashboard({ user, logout }) {
             <div className="rounded-2xl border border-blue-300/20 bg-blue-500/15 px-4 py-3 text-sm font-black text-blue-100">
               Live map booking
             </div>
+            <Link to="/rider/history" className="rounded-2xl border border-white/15 bg-white/10 px-5 py-3 text-center text-sm font-black text-blue-100 hover:bg-white/15">Ride History</Link>
             <button onClick={logout} className="rounded-2xl border border-white/15 bg-white/10 px-5 py-3 text-sm font-black text-blue-100 hover:bg-white/15">Logout</button>
           </div>
         </header>
 
+        {!showBookingForm && (
+          <CurrentRidePanel
+            ride={currentRide}
+            loading={loadingCurrentRide}
+            onBookAnother={() => {
+              setBookingFormOpened(true)
+              setShowBookingForm(true)
+            }}
+          />
+        )}
+
+        {showBookingForm && (
         <motion.section
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
@@ -190,8 +227,64 @@ export function RiderDashboard({ user, logout }) {
             </aside>
           </div>
         </motion.section>
+        )}
       </section>
     </main>
+  )
+}
+
+function CurrentRidePanel({ ride, loading, onBookAnother }) {
+  if (loading && !ride) {
+    return <div className="rounded-[2rem] border border-white/15 bg-white/10 p-6 text-sm font-bold text-blue-100 shadow-2xl shadow-blue-950/30 backdrop-blur-xl">Loading current ride...</div>
+  }
+
+  if (!ride) {
+    return null
+  }
+
+  return (
+    <motion.section initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} className="overflow-hidden rounded-[2.2rem] border border-emerald-300/20 bg-[linear-gradient(145deg,rgba(16,185,129,.16),rgba(15,23,42,.62))] p-6 shadow-2xl shadow-emerald-950/30 backdrop-blur-2xl">
+      <div className="grid gap-6 lg:grid-cols-[1fr_0.8fr]">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.32em] text-emerald-200/80">current ride</p>
+          <h2 className="mt-2 text-4xl font-black tracking-tight">Your driver accepted the ride</h2>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-blue-100/75">Keep this screen open to follow the active ride status. You can book another ride only if you choose to open the booking form.</p>
+
+          <div className="mt-6 space-y-4">
+            <RouteCard label="Pickup Location" address={ride.pickupAddress} lat={ride.pickupLatitude} lng={ride.pickupLongitude} />
+            <div className="ml-4 h-10 w-px bg-emerald-200/25" />
+            <RouteCard label="Drop Location" address={ride.dropAddress} lat={ride.dropLatitude} lng={ride.dropLongitude} />
+          </div>
+
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <button onClick={onBookAnother} className="rounded-2xl border border-white/15 bg-white/10 px-5 py-3 text-sm font-black text-blue-100 transition hover:bg-white/15">Book Another Ride</button>
+          </div>
+        </div>
+
+        <aside className="rounded-[1.8rem] border border-white/10 bg-slate-950/35 p-5">
+          <h3 className="text-2xl font-black">Ride Details</h3>
+          <div className="mt-5 grid gap-3">
+            <MetricCard label="Status" value={ride.status} />
+            <MetricCard label="Driver" value={ride.driverName || 'Assigned driver'} />
+            <MetricCard label="Driver Phone" value={ride.driverPhone || 'Not available'} />
+            <MetricCard label="Vehicle" value={`${formatVehicleType(ride.vehicleType)} ${ride.driverVehicleNumber ? `| ${ride.driverVehicleNumber}` : ''}`} />
+            <MetricCard label="Distance" value={`${ride.distanceKm || '--'} km`} />
+            <MetricCard label="Price" value={`LKR ${Number(ride.price || 0).toFixed(0)}`} />
+          </div>
+        </aside>
+      </div>
+    </motion.section>
+  )
+}
+
+function RouteCard({ label, address, lat, lng }) {
+  const href = lat && lng ? `https://www.google.com/maps/search/?api=1&query=${lat},${lng}` : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address || '')}`
+  return (
+    <a href={href} target="_blank" rel="noreferrer" className="block rounded-2xl border border-white/10 bg-white/10 p-4 transition hover:border-blue-300/40 hover:bg-blue-500/10">
+      <p className="text-xs font-black uppercase tracking-[0.22em] text-blue-200/70">{label}</p>
+      <p className="mt-2 text-sm font-bold leading-6 text-white">{address}</p>
+      <p className="mt-2 text-xs font-black text-blue-300">Open in Google Maps</p>
+    </a>
   )
 }
 

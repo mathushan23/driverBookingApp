@@ -5,6 +5,7 @@ import com.example.backend.model.DriverStatusRequest;
 import com.example.backend.model.LocationRequest;
 import com.example.backend.model.OnboardingRequest;
 import com.example.backend.model.UserAccount;
+import com.example.backend.repository.BookingRepository;
 import com.example.backend.repository.UserAccountRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -14,10 +15,12 @@ import org.springframework.web.server.ResponseStatusException;
 public class UserService {
 
     private final UserAccountRepository users;
+    private final BookingRepository bookings;
     private final AuthService authService;
 
-    public UserService(UserAccountRepository users, AuthService authService) {
+    public UserService(UserAccountRepository users, BookingRepository bookings, AuthService authService) {
         this.users = users;
+        this.bookings = bookings;
         this.authService = authService;
     }
 
@@ -57,6 +60,11 @@ public class UserService {
 
         if (!"driver".equals(user.getRole())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only drivers can update driver status");
+        }
+
+        boolean hasActiveRide = bookings.existsByDriverIdAndStatus(userId, "ACCEPTED");
+        if (hasActiveRide && !"BUSY".equals(request.status())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Complete the active ride before changing driver status");
         }
 
         user.setDriverStatus(request.status());

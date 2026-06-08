@@ -48,6 +48,22 @@ public class BookingService {
         return toResponse(findBooking(bookingId));
     }
 
+    public List<BookingResponse> getRiderHistory(Long riderId) {
+        return bookings.findByRiderIdOrderByCreatedAtDesc(riderId)
+                .stream()
+                .map(this::toResponse)
+                .sorted(this::activeFirst)
+                .toList();
+    }
+
+    public List<BookingResponse> getDriverHistory(Long driverId) {
+        return bookings.findByDriverIdOrderByCreatedAtDesc(driverId)
+                .stream()
+                .map(this::toResponse)
+                .sorted(this::activeFirst)
+                .toList();
+    }
+
     public List<BookingResponse> getNearbyPendingRequests(Long driverId) {
         UserAccount driver = users.findById(driverId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Driver not found"));
@@ -182,6 +198,23 @@ public class BookingService {
                 booking.getStatus(),
                 countNearbyDrivers(booking)
         );
+    }
+
+    private int activeFirst(BookingResponse left, BookingResponse right) {
+        return Integer.compare(statusRank(left.status()), statusRank(right.status()));
+    }
+
+    private int statusRank(String status) {
+        if ("ACCEPTED".equals(status)) {
+            return 0;
+        }
+        if ("PENDING".equals(status)) {
+            return 1;
+        }
+        if ("COMPLETED".equals(status)) {
+            return 2;
+        }
+        return 3;
     }
 
     private int countNearbyDrivers(Booking booking) {
