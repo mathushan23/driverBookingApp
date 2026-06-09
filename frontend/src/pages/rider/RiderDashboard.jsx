@@ -1,12 +1,37 @@
+import { DirectionsRenderer, GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api'
 import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
+import vehicleCarImage from '../../assets/vehicle-car.png'
+import vehicleMotorBikeImage from '../../assets/vehicle-motor-bike.png'
+import vehicleThreeWheelerImage from '../../assets/vehicle-three-wheeler.png'
+import vehicleVanImage from '../../assets/vehicle-van.png'
 import { BackgroundFX } from '../../components/auth/AuthLayout'
+import { RiderSidebar } from '../../components/layout/RiderSidebar'
 import { LocationPicker } from '../../components/location/LocationPicker'
 import { api } from '../../services/api'
 
 const assignedDriver = { name: 'Nimal Perera', vehicle: 'Toyota Aqua', eta: '3 min', rating: '4.9' }
-const vehicleTypes = ['motor bike', 'three wheeler', 'car', 'van']
+const vehicleTypes = [
+  { value: 'motor bike', label: 'Motor Bike', image: vehicleMotorBikeImage, seats: 'Fast solo ride' },
+  { value: 'three wheeler', label: 'Three Wheeler', image: vehicleThreeWheelerImage, seats: 'City ride' },
+  { value: 'car', label: 'Car', image: vehicleCarImage, seats: 'Comfort ride' },
+  { value: 'van', label: 'Van', image: vehicleVanImage, seats: 'Group ride' },
+]
+const defaultMapCenter = { lat: 6.9271, lng: 79.8612 }
+const mapLibraries = ['places']
+const darkMapStyles = [
+  { elementType: 'geometry', stylers: [{ color: '#10203a' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#94a3b8' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#061022' }] },
+  { featureType: 'administrative.locality', elementType: 'labels.text.fill', stylers: [{ color: '#cbd5e1' }] },
+  { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#1c3358' }] },
+  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#0b1830' }] },
+  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#244a82' }] },
+  { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#07162b' }] },
+]
 
 export function RiderDashboard({ user, logout }) {
   const navigate = useNavigate()
@@ -24,7 +49,7 @@ export function RiderDashboard({ user, logout }) {
   const [loadingCurrentRide, setLoadingCurrentRide] = useState(true)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
-  const [routeInfo, setRouteInfo] = useState({ loading: false, distance: null, duration: null, error: '' })
+  const [routeInfo, setRouteInfo] = useState({ loading: false, distance: null, duration: null, directions: null, error: '' })
 
   const loadCurrentRide = async () => {
     if (!user?.id) return
@@ -51,16 +76,16 @@ export function RiderDashboard({ user, logout }) {
 
     const calculateRouteDistance = () => {
       if (!booking.pickup?.lat || !booking.pickup?.lng || !booking.drop?.lat || !booking.drop?.lng) {
-        setRouteInfo({ loading: false, distance: null, duration: null, error: '' })
+        setRouteInfo({ loading: false, distance: null, duration: null, directions: null, error: '' })
         return
       }
 
       if (!window.google?.maps?.DirectionsService) {
-        setRouteInfo({ loading: false, distance: null, duration: null, error: 'Google route unavailable' })
+        setRouteInfo({ loading: false, distance: null, duration: null, directions: null, error: 'Google route unavailable' })
         return
       }
 
-      setRouteInfo({ loading: true, distance: null, duration: null, error: '' })
+      setRouteInfo({ loading: true, distance: null, duration: null, directions: null, error: '' })
       const directionsService = new window.google.maps.DirectionsService()
 
       directionsService.route(
@@ -73,7 +98,7 @@ export function RiderDashboard({ user, logout }) {
           if (!active) return
 
           if (status !== 'OK' || !result?.routes?.[0]?.legs?.length) {
-            setRouteInfo({ loading: false, distance: null, duration: null, error: 'Route not found' })
+            setRouteInfo({ loading: false, distance: null, duration: null, directions: null, error: 'Route not found' })
             return
           }
 
@@ -83,6 +108,7 @@ export function RiderDashboard({ user, logout }) {
             loading: false,
             distance: (meters / 1000).toFixed(1),
             duration: formatDuration(seconds),
+            directions: result,
             error: '',
           })
         },
@@ -130,42 +156,30 @@ export function RiderDashboard({ user, logout }) {
   return (
     <main className="relative min-h-screen overflow-hidden bg-slate-950 px-4 py-6 text-white">
       <BackgroundFX />
-      <section className="relative z-10 mx-auto max-w-6xl">
-        <header className="mb-6 flex flex-col gap-4 overflow-hidden rounded-[2rem] border border-white/15 bg-[linear-gradient(135deg,rgba(37,99,235,.24),rgba(255,255,255,.09)_44%,rgba(14,165,233,.16))] p-5 shadow-2xl shadow-blue-950/40 backdrop-blur-2xl sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.35em] text-blue-300">ride booking app</p>
-            <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-5xl">Rider Dashboard</h1>
-            <p className="mt-2 text-blue-100/75">Welcome {user?.name || 'Rider'}, choose your route and vehicle.</p>
-          </div>
-          <div className="flex flex-col gap-3 sm:items-end">
-            <div className="rounded-2xl border border-blue-300/20 bg-blue-500/15 px-4 py-3 text-sm font-black text-blue-100">
-              Live map booking
-            </div>
-            <Link to="/rider/history" className="rounded-2xl border border-white/15 bg-white/10 px-5 py-3 text-center text-sm font-black text-blue-100 hover:bg-white/15">Ride History</Link>
-            <button onClick={logout} className="rounded-2xl border border-white/15 bg-white/10 px-5 py-3 text-sm font-black text-blue-100 hover:bg-white/15">Logout</button>
-          </div>
-        </header>
+      <section className="relative z-10 mx-auto grid max-w-7xl gap-5 lg:ml-72 lg:block lg:max-w-none">
+        <RiderSidebar user={user} logout={logout} />
 
-        {!showBookingForm && (
-          <CurrentRidePanel
-            ride={currentRide}
-            loading={loadingCurrentRide}
-            onBookAnother={() => {
-              setBookingFormOpened(true)
-              setShowBookingForm(true)
-            }}
-          />
-        )}
+        <div className="min-w-0 lg:px-6">
+          {!showBookingForm && (
+            <CurrentRidePanel
+              ride={currentRide}
+              loading={loadingCurrentRide}
+              onBookAnother={() => {
+                setBookingFormOpened(true)
+                setShowBookingForm(true)
+              }}
+            />
+          )}
 
-        {showBookingForm && (
-        <motion.section
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="overflow-hidden rounded-[2.2rem] border border-white/15 bg-[linear-gradient(145deg,rgba(255,255,255,.13),rgba(15,23,42,.42))] shadow-2xl shadow-blue-950/40 backdrop-blur-2xl"
-        >
-          <div className="grid gap-0 lg:grid-cols-[1.05fr_0.95fr]">
-            <div className="p-5 sm:p-8">
+          {showBookingForm && (
+          <motion.section
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="overflow-hidden rounded-[2.2rem] border border-white/15 bg-[linear-gradient(145deg,rgba(255,255,255,.13),rgba(15,23,42,.42))] shadow-2xl shadow-blue-950/40 backdrop-blur-2xl"
+          >
+          <div className="grid gap-0 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+            <div className="min-w-0 p-5 sm:p-8">
               <div className="mb-6">
                 <p className="text-xs font-black uppercase tracking-[0.32em] text-blue-300">book a ride</p>
                 <h2 className="mt-2 text-3xl font-black tracking-tight">Where are you going?</h2>
@@ -180,13 +194,8 @@ export function RiderDashboard({ user, logout }) {
                   <LocationPicker label="Drop Location" value={booking.drop} onChange={(drop) => setBooking({ ...booking, drop })} />
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-[0.8fr_1.2fr]">
-                  <label className="block text-sm font-bold text-blue-50">
-                    <span className="mb-2 block">Vehicle Type</span>
-                    <select className="auth-input capitalize" value={booking.vehicleType} onChange={(event) => setBooking({ ...booking, vehicleType: event.target.value })}>
-                      {vehicleTypes.map((type) => <option key={type} value={type}>{formatVehicleType(type)}</option>)}
-                    </select>
-                  </label>
+                <div className="grid gap-4">
+                  <VehicleTypeSelector value={booking.vehicleType} onChange={(vehicleType) => setBooking({ ...booking, vehicleType })} />
                   <label className="block text-sm font-bold text-blue-50">
                     <span className="mb-2 block">Special Note (Optional)</span>
                     <input className="auth-input" value={booking.specialNote} onChange={(event) => setBooking({ ...booking, specialNote: event.target.value })} placeholder="Gate number, luggage, payment note..." />
@@ -202,17 +211,7 @@ export function RiderDashboard({ user, logout }) {
               <div className="absolute right-8 top-8 h-24 w-24 rounded-full bg-blue-500/20 blur-3xl" />
               <div className="absolute bottom-8 left-8 h-32 w-32 rounded-full bg-cyan-400/10 blur-3xl" />
               <h3 className="relative text-2xl font-black">Ride Summary</h3>
-              <div className="relative mt-6 rounded-[1.7rem] border border-white/10 bg-white/10 p-5">
-                <SummaryRow label="Pickup" value={booking.pickup.address || 'Select pickup location'} dot="bg-blue-300" />
-                <div className="ml-[7px] h-10 w-px bg-blue-300/30" />
-                <SummaryRow label="Drop" value={booking.drop.address || 'Select drop location'} dot="bg-emerald-300" />
-              </div>
-              <div className="relative mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-                <MetricCard label="Vehicle" value={formatVehicleType(booking.vehicleType)} />
-                <MetricCard label="Total Distance" value={formatRouteDistance(routeInfo)} />
-                <MetricCard label="Estimated Ride Time" value={formatRouteDuration(routeInfo)} />
-                <MetricCard label="Ride Price" value={formatPrice(routeInfo)} />
-              </div>
+              <RideSummaryMap booking={booking} routeInfo={routeInfo} />
 
               {confirmation && (
                 <motion.div initial={{ opacity: 0, y: 16, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="relative mt-6 rounded-[1.5rem] border border-emerald-300/20 bg-emerald-400/10 p-5 text-emerald-50">
@@ -226,10 +225,145 @@ export function RiderDashboard({ user, logout }) {
               )}
             </aside>
           </div>
-        </motion.section>
-        )}
+          </motion.section>
+          )}
+        </div>
       </section>
     </main>
+  )
+}
+
+function VehicleTypeSelector({ value, onChange }) {
+  return (
+    <div className="min-w-0">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <span className="text-sm font-bold text-blue-50">Vehicle Type</span>
+        <span className="text-xs font-black uppercase tracking-[0.18em] text-blue-200/55">Choose one</span>
+      </div>
+      <div className="max-w-full overflow-x-auto pb-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex w-max gap-3">
+        {vehicleTypes.map((vehicle) => {
+          const selected = value === vehicle.value
+          return (
+            <motion.button
+              key={vehicle.value}
+              type="button"
+              onClick={() => onChange(vehicle.value)}
+              whileHover={{ y: -3, scale: 1.01 }}
+              whileTap={{ scale: 0.98 }}
+              className={`group min-w-[220px] flex-[0_0_220px] overflow-hidden rounded-[1.35rem] border text-left transition sm:min-w-[240px] sm:flex-[0_0_240px] ${selected ? 'border-blue-300 bg-blue-500/18 shadow-2xl shadow-blue-500/20' : 'border-white/10 bg-slate-950/35 hover:border-blue-300/45 hover:bg-white/10'}`}
+            >
+              <div className="relative h-28 overflow-hidden bg-slate-900 sm:h-32">
+                <img src={vehicle.image} alt={vehicle.label} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/82 via-slate-950/18 to-transparent" />
+                {selected && <div className="absolute inset-0 ring-2 ring-inset ring-blue-300" />}
+              </div>
+              <div className="flex items-center justify-between gap-3 p-3">
+                <div>
+                  <p className="text-sm font-black text-white">{vehicle.label}</p>
+                  <p className="mt-1 text-xs font-bold text-blue-100/58">{vehicle.seats}</p>
+                </div>
+              </div>
+            </motion.button>
+          )
+        })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function RideSummaryMap({ booking, routeInfo }) {
+  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
+  const hasPickup = Boolean(booking.pickup?.lat && booking.pickup?.lng)
+  const hasDrop = Boolean(booking.drop?.lat && booking.drop?.lng)
+  const pickup = hasPickup ? { lat: booking.pickup.lat, lng: booking.pickup.lng } : null
+  const drop = hasDrop ? { lat: booking.drop.lat, lng: booking.drop.lng } : null
+  const mapCenter = pickup && drop
+    ? { lat: (pickup.lat + drop.lat) / 2, lng: (pickup.lng + drop.lng) / 2 }
+    : pickup || drop || defaultMapCenter
+  const viewMapHref = pickup && drop
+    ? `https://www.google.com/maps/dir/?api=1&origin=${pickup.lat},${pickup.lng}&destination=${drop.lat},${drop.lng}&travelmode=driving`
+    : 'https://www.google.com/maps'
+
+  const { isLoaded } = useJsApiLoader({
+    googleMapsApiKey: apiKey || 'missing-key',
+    libraries: mapLibraries,
+  })
+
+  return (
+    <div className="relative mt-6 overflow-hidden rounded-[1.8rem] border border-blue-300/15 bg-slate-950/70 shadow-2xl shadow-blue-950/30">
+      <div className="relative h-[360px] overflow-hidden bg-slate-900">
+        {isLoaded && apiKey ? (
+          <GoogleMap
+            mapContainerStyle={{ width: '100%', height: '100%' }}
+            center={mapCenter}
+            zoom={pickup && drop ? 11 : 12}
+            options={{
+              styles: darkMapStyles,
+              disableDefaultUI: true,
+              zoomControl: true,
+              clickableIcons: false,
+              gestureHandling: 'greedy',
+            }}
+          >
+            {routeInfo.directions && (
+              <DirectionsRenderer
+                directions={routeInfo.directions}
+                options={{
+                  suppressMarkers: true,
+                  polylineOptions: {
+                    strokeColor: '#1479ff',
+                    strokeWeight: 5,
+                    strokeOpacity: 0.95,
+                  },
+                }}
+              />
+            )}
+            {pickup && <Marker position={pickup} label={{ text: 'P', color: '#ffffff', fontWeight: '900' }} />}
+            {drop && <Marker position={drop} label={{ text: 'D', color: '#ffffff', fontWeight: '900' }} />}
+          </GoogleMap>
+        ) : (
+          <div className="grid h-full place-items-center px-6 text-center text-sm font-bold text-blue-100">
+            Add `VITE_GOOGLE_MAPS_API_KEY` to show the route map.
+          </div>
+        )}
+
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(2,6,23,.06),rgba(2,6,23,.18))]" />
+        <a href={viewMapHref} target="_blank" rel="noreferrer" className="absolute right-4 top-4 rounded-xl border border-blue-300/25 bg-slate-950/72 px-4 py-2 text-xs font-black text-white shadow-xl backdrop-blur-xl transition hover:bg-blue-600">
+          View on map
+        </a>
+
+        {pickup && (
+          <div className="absolute left-5 top-20 rounded-xl bg-slate-950/80 px-3 py-2 text-xs font-black text-white shadow-xl backdrop-blur-xl">
+            {formatPlaceName(booking.pickup.address) || 'Pickup'}
+          </div>
+        )}
+        {drop && (
+          <div className="absolute bottom-20 right-5 rounded-xl bg-slate-950/80 px-3 py-2 text-xs font-black text-white shadow-xl backdrop-blur-xl">
+            {formatPlaceName(booking.drop.address) || 'Drop'}
+          </div>
+        )}
+      </div>
+
+      <div className="grid border-t border-white/10 bg-slate-950/82 sm:grid-cols-3">
+        <SummaryMetric icon="km" label="Distance" value={formatRouteDistance(routeInfo)} />
+        <SummaryMetric icon="time" label="Est. Time" value={formatRouteDuration(routeInfo)} />
+        <SummaryMetric icon="fare" label="Ride Price" value={formatPrice(routeInfo)} />
+      </div>
+    </div>
+  )
+}
+
+function SummaryMetric({ icon, label, value }) {
+  return (
+    <div className="flex items-center gap-3 border-b border-white/10 px-5 py-4 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0">
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-blue-500/14 text-[0.62rem] font-black uppercase text-blue-300 ring-1 ring-blue-300/18">{icon}</span>
+      <div>
+        <p className="text-xs font-black text-blue-100/58">{label}</p>
+        <p className="mt-1 text-base font-black text-white">{value}</p>
+      </div>
+    </div>
   )
 }
 
@@ -288,18 +422,6 @@ function RouteCard({ label, address, lat, lng }) {
   )
 }
 
-function SummaryRow({ label, value, dot }) {
-  return (
-    <div className="flex gap-3">
-      <span className={`mt-1.5 h-4 w-4 rounded-full ${dot} shadow-lg shadow-blue-400/40`} />
-      <div>
-        <p className="text-xs font-black uppercase tracking-[0.22em] text-blue-200/70">{label}</p>
-        <p className="mt-1 text-sm font-bold leading-6 text-white/90">{value}</p>
-      </div>
-    </div>
-  )
-}
-
 function MetricCard({ label, value }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
@@ -333,6 +455,10 @@ function formatPrice(routeInfo) {
   if (routeInfo.error) return routeInfo.error
   if (!routeInfo.distance) return 'Select route'
   return `LKR ${(Number(routeInfo.distance) * 100).toFixed(0)}`
+}
+
+function formatPlaceName(address = '') {
+  return address.split(',')[0]?.trim()
 }
 
 function formatDuration(totalSeconds) {

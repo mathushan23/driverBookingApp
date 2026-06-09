@@ -4,7 +4,7 @@ import { useParams } from 'react-router-dom'
 import { api } from '../../services/api'
 import { EmptyCard, formatVehicleType, HistoryShell } from './RiderRideHistoryPage'
 
-export function RiderRideDetailsPage() {
+export function RiderRideDetailsPage({ user, logout }) {
   const { bookingId } = useParams()
   const [ride, setRide] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -22,7 +22,7 @@ export function RiderRideDetailsPage() {
   }, [bookingId])
 
   return (
-    <HistoryShell title="Ride Details" subtitle="View ride route, driver details, status, and fare." backTo="/rider/history">
+    <HistoryShell title="Ride Details" subtitle="View ride route, driver details, status, and fare." user={user} logout={logout}>
       {loading && <EmptyCard text="Loading ride details..." />}
       {!loading && !ride && <EmptyCard text="Ride not found." />}
       {ride && (

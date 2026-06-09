@@ -1,10 +1,11 @@
 import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { BackgroundFX } from '../../components/auth/AuthLayout'
+import { RiderSidebar } from '../../components/layout/RiderSidebar'
 import { api } from '../../services/api'
 
-export function RiderRideHistoryPage({ user }) {
+export function RiderRideHistoryPage({ user, logout }) {
   const navigate = useNavigate()
   const [rides, setRides] = useState([])
   const [loading, setLoading] = useState(true)
@@ -22,7 +23,7 @@ export function RiderRideHistoryPage({ user }) {
   }, [user.id])
 
   return (
-    <HistoryShell title="Ride History" subtitle="Track active rides first and review your previous bookings." backTo="/rider/dashboard">
+    <HistoryShell title="Ride History" subtitle="Track active rides first and review your previous bookings." user={user} logout={logout}>
       {loading && <EmptyCard text="Loading ride history..." />}
       {!loading && rides.length === 0 && <EmptyCard text="No rides found yet." />}
       <div className="grid gap-4">
@@ -57,20 +58,22 @@ function RideHistoryCard({ ride, index, onTrack }) {
   )
 }
 
-export function HistoryShell({ title, subtitle, backTo, children }) {
+export function HistoryShell({ title, subtitle, user, logout, children }) {
   return (
     <main className="relative min-h-screen overflow-hidden bg-slate-950 px-4 py-6 text-white">
       <BackgroundFX />
-      <section className="relative z-10 mx-auto max-w-6xl">
-        <header className="mb-6 flex flex-col gap-4 rounded-[2rem] border border-white/15 bg-white/10 p-5 shadow-2xl shadow-blue-950/40 backdrop-blur-2xl sm:flex-row sm:items-center sm:justify-between">
+      <section className="relative z-10 mx-auto grid max-w-7xl gap-5 lg:ml-72 lg:block lg:max-w-none">
+        <RiderSidebar user={user} logout={logout} />
+        <div className="min-w-0 lg:px-6">
+        <header className="mb-6 rounded-[2rem] border border-white/15 bg-white/10 p-5 shadow-2xl shadow-blue-950/40 backdrop-blur-2xl">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.35em] text-blue-300">ride booking app</p>
             <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-5xl">{title}</h1>
             <p className="mt-2 text-blue-100/75">{subtitle}</p>
           </div>
-          <Link to={backTo} className="rounded-2xl border border-white/15 bg-white/10 px-5 py-3 text-sm font-black text-blue-100 hover:bg-white/15">Back</Link>
         </header>
         {children}
+        </div>
       </section>
     </main>
   )

@@ -111,7 +111,7 @@ export function LocationPicker({ label, value, onChange, allowCurrentLocation = 
   const input = (
     <input
       required
-      className="auth-input pr-28"
+      className="auth-input"
       value={value?.address || ''}
       placeholder={`Enter ${label.toLowerCase()}`}
       onChange={(event) => updateAddress(event.target.value)}
@@ -122,22 +122,24 @@ export function LocationPicker({ label, value, onChange, allowCurrentLocation = 
     <div className="space-y-2">
       <label className="block text-sm font-bold text-blue-50">
         <span className="mb-2 block">{label}</span>
-        <div className="relative">
-          {isLoaded && apiKey ? (
-            <Autocomplete onLoad={setAutocomplete} onPlaceChanged={() => applyPlace(autocomplete?.getPlace())}>
-              {input}
-            </Autocomplete>
-          ) : input}
-          <div className="absolute right-2 top-1/2 flex -translate-y-1/2 gap-1">
-            {allowCurrentLocation && (
-              <button type="button" title="Use Current Location" onClick={useCurrentLocation} className="location-icon-btn">
-                {detecting ? <span className="location-pulse" /> : 'GPS'}
-              </button>
-            )}
-            <button type="button" title="Select from Map" onClick={openMap} className="location-icon-btn">Map</button>
-          </div>
-        </div>
+        {isLoaded && apiKey ? (
+          <Autocomplete onLoad={setAutocomplete} onPlaceChanged={() => applyPlace(autocomplete?.getPlace())}>
+            {input}
+          </Autocomplete>
+        ) : input}
       </label>
+
+      <div className="flex flex-wrap gap-2">
+        {allowCurrentLocation && (
+          <button type="button" onClick={useCurrentLocation} className="rounded-xl border border-blue-300/25 bg-blue-500/15 px-3 py-1.5 text-xs font-black text-blue-50 transition hover:bg-blue-500/25">
+            {detecting ? 'Detecting Location...' : 'Get Current Location'}
+          </button>
+        )}
+        <button type="button" onClick={openMap} className="rounded-xl border border-blue-300/25 bg-slate-950/35 px-3 py-1.5 text-xs font-black text-blue-50 transition hover:bg-blue-500/20">
+          Select from Map
+        </button>
+      </div>
+
       {error && <p className="text-xs font-bold text-red-200">{error}</p>}
       {!apiKey && <p className="text-xs font-semibold text-amber-100/80">Add VITE_GOOGLE_MAPS_API_KEY to enable Google suggestions and map.</p>}
 

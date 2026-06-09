@@ -83,7 +83,7 @@ function AppRoutes({ user, saveUser }) {
         path="/rider/history"
         element={
           <RoleRoute user={user} allowedRole="rider">
-            <RiderRideHistoryPage user={user} />
+            <RiderRideHistoryPage user={user} logout={logout} />
           </RoleRoute>
         }
       />
@@ -91,7 +91,7 @@ function AppRoutes({ user, saveUser }) {
         path="/rider/rides/:bookingId"
         element={
           <RoleRoute user={user} allowedRole="rider">
-            <RiderRideDetailsPage />
+            <RiderRideDetailsPage user={user} logout={logout} />
           </RoleRoute>
         }
       />
