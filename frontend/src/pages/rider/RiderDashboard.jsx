@@ -1,7 +1,8 @@
-import { DirectionsRenderer, GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api'
+import { DirectionsRenderer, GoogleMap, Marker, OverlayView, useJsApiLoader } from '@react-google-maps/api'
 import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import defaultUserImage from '../../assets/default-user.png'
 import vehicleCarImage from '../../assets/vehicle-car.png'
 import vehicleMotorBikeImage from '../../assets/vehicle-motor-bike.png'
 import vehicleThreeWheelerImage from '../../assets/vehicle-three-wheeler.png'
@@ -368,6 +369,56 @@ function SummaryMetric({ icon, label, value }) {
 }
 
 function CurrentRidePanel({ ride, loading, onBookAnother }) {
+  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
+  const [driverRoute, setDriverRoute] = useState({ loading: false, directions: null, duration: '', distance: '', error: '' })
+  const pickup = ride?.pickupLatitude && ride?.pickupLongitude ? { lat: ride.pickupLatitude, lng: ride.pickupLongitude } : null
+  const drop = ride?.dropLatitude && ride?.dropLongitude ? { lat: ride.dropLatitude, lng: ride.dropLongitude } : null
+  const driver = ride?.driverLatitude && ride?.driverLongitude ? { lat: ride.driverLatitude, lng: ride.driverLongitude } : null
+  const mapCenter = driver && pickup
+    ? { lat: (driver.lat + pickup.lat) / 2, lng: (driver.lng + pickup.lng) / 2 }
+    : pickup || driver || defaultMapCenter
+  const { isLoaded } = useJsApiLoader({
+    googleMapsApiKey: apiKey || 'missing-key',
+    libraries: mapLibraries,
+  })
+
+  useEffect(() => {
+    if (!driver || !pickup || !window.google?.maps?.DirectionsService) {
+      setDriverRoute({ loading: false, directions: null, duration: '', distance: '', error: '' })
+      return
+    }
+
+    let active = true
+    setDriverRoute({ loading: true, directions: null, duration: '', distance: '', error: '' })
+    const directionsService = new window.google.maps.DirectionsService()
+    directionsService.route(
+      {
+        origin: driver,
+        destination: pickup,
+        travelMode: window.google.maps.TravelMode.DRIVING,
+      },
+      (result, status) => {
+        if (!active) return
+        const leg = result?.routes?.[0]?.legs?.[0]
+        if (status !== 'OK' || !leg) {
+          setDriverRoute({ loading: false, directions: null, duration: '', distance: '', error: 'Route unavailable' })
+          return
+        }
+        setDriverRoute({
+          loading: false,
+          directions: result,
+          duration: leg.duration?.text || '',
+          distance: leg.distance?.text || '',
+          error: '',
+        })
+      },
+    )
+
+    return () => {
+      active = false
+    }
+  }, [driver?.lat, driver?.lng, pickup?.lat, pickup?.lng])
+
   if (loading && !ride) {
     return <div className="rounded-[2rem] border border-white/15 bg-white/10 p-6 text-sm font-bold text-blue-100 shadow-2xl shadow-blue-950/30 backdrop-blur-xl">Loading current ride...</div>
   }
@@ -377,37 +428,136 @@ function CurrentRidePanel({ ride, loading, onBookAnother }) {
   }
 
   return (
-    <motion.section initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} className="overflow-hidden rounded-[2.2rem] border border-emerald-300/20 bg-[linear-gradient(145deg,rgba(16,185,129,.16),rgba(15,23,42,.62))] p-6 shadow-2xl shadow-emerald-950/30 backdrop-blur-2xl">
-      <div className="grid gap-6 lg:grid-cols-[1fr_0.8fr]">
-        <div>
-          <p className="text-xs font-black uppercase tracking-[0.32em] text-emerald-200/80">current ride</p>
-          <h2 className="mt-2 text-4xl font-black tracking-tight">Your driver accepted the ride</h2>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-blue-100/75">Keep this screen open to follow the active ride status. You can book another ride only if you choose to open the booking form.</p>
+    <motion.section initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} className="overflow-hidden rounded-[2rem] border border-blue-300/20 bg-[linear-gradient(145deg,rgba(6,18,43,.98),rgba(2,8,23,.98))] shadow-2xl shadow-blue-950/50">
+      <div className="grid lg:grid-cols-[0.42fr_1fr]">
+        <aside className="border-b border-blue-200/15 p-6 lg:border-b-0 lg:border-r">
+          <div className="inline-flex items-center gap-2 rounded-full bg-emerald-400/12 px-3 py-2 text-sm font-black text-emerald-300">
+            <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
+            Driver Accepted
+          </div>
+          <h2 className="mt-4 text-3xl font-black tracking-tight">Your driver is on the way!</h2>
+          <p className="mt-2 text-sm font-semibold leading-6 text-blue-100/70">Sit tight. Your driver is heading to your pickup location.</p>
 
-          <div className="mt-6 space-y-4">
-            <RouteCard label="Pickup Location" address={ride.pickupAddress} lat={ride.pickupLatitude} lng={ride.pickupLongitude} />
-            <div className="ml-4 h-10 w-px bg-emerald-200/25" />
-            <RouteCard label="Drop Location" address={ride.dropAddress} lat={ride.dropLatitude} lng={ride.dropLongitude} />
+          <div className="mt-6 border-t border-white/10 pt-5">
+            <div className="flex items-center gap-4">
+              <img src={defaultUserImage} alt="Driver profile" className="h-20 w-20 rounded-full border border-blue-300/20 object-cover shadow-xl shadow-blue-950/40" />
+              <div>
+                <p className="text-2xl font-black text-white">{ride.driverName || 'Assigned driver'}</p>
+                <p className="mt-2 text-sm font-bold text-blue-100/70">{ride.driverPhone || 'Phone not available'}</p>
+              </div>
+            </div>
+
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <a href={ride.driverPhone ? `tel:${ride.driverPhone}` : undefined} className="rounded-2xl bg-blue-600 px-4 py-3 text-center text-sm font-black text-white shadow-xl shadow-blue-500/25 transition hover:bg-blue-500">Call Driver</a>
+              <button type="button" className="rounded-2xl border border-blue-300/25 bg-slate-950/40 px-4 py-3 text-sm font-black text-blue-100 transition hover:bg-blue-500/15">Message</button>
+            </div>
           </div>
 
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-            <button onClick={onBookAnother} className="rounded-2xl border border-white/15 bg-white/10 px-5 py-3 text-sm font-black text-blue-100 transition hover:bg-white/15">Book Another Ride</button>
+          <div className="mt-5 rounded-[1.45rem] border border-white/10 bg-white/[0.05] p-4">
+            <p className="text-sm font-black text-blue-100/70">Vehicle Details</p>
+            <div className="mt-4 flex items-center gap-4">
+              <img src={vehicleImageForType(ride.vehicleType || ride.driverVehicleType)} alt={formatVehicleType(ride.vehicleType || ride.driverVehicleType)} className="h-20 w-28 rounded-2xl object-cover" />
+              <div>
+                <p className="text-xl font-black text-white">{formatVehicleType(ride.vehicleType || ride.driverVehicleType)}</p>
+                <p className="mt-1 text-sm font-bold text-blue-100/60">{ride.driverVehicleNumber || 'Vehicle number pending'}</p>
+                <p className="mt-2 inline-flex rounded-lg bg-white/10 px-3 py-1 text-xs font-black text-blue-100">LKR {Number(ride.price || 0).toFixed(0)}</p>
+              </div>
+            </div>
           </div>
-        </div>
 
-        <aside className="rounded-[1.8rem] border border-white/10 bg-slate-950/35 p-5">
-          <h3 className="text-2xl font-black">Ride Details</h3>
-          <div className="mt-5 grid gap-3">
-            <MetricCard label="Status" value={ride.status} />
-            <MetricCard label="Driver" value={ride.driverName || 'Assigned driver'} />
-            <MetricCard label="Driver Phone" value={ride.driverPhone || 'Not available'} />
-            <MetricCard label="Vehicle" value={`${formatVehicleType(ride.vehicleType)} ${ride.driverVehicleNumber ? `| ${ride.driverVehicleNumber}` : ''}`} />
-            <MetricCard label="Distance" value={`${ride.distanceKm || '--'} km`} />
-            <MetricCard label="Price" value={`LKR ${Number(ride.price || 0).toFixed(0)}`} />
+          <div className="mt-5 grid grid-cols-[0.75fr_1fr] overflow-hidden rounded-[1.35rem] border border-blue-300/15 bg-white/[0.05]">
+            <div className="border-r border-white/10 p-4">
+              <p className="text-xs font-bold text-blue-100/60">ETA</p>
+              <p className="mt-1 text-2xl font-black text-white">{driverRoute.loading ? '...' : driverRoute.duration || '--'}</p>
+              <p className="mt-1 text-xs font-semibold text-blue-100/55">{driverRoute.distance || 'Distance pending'}</p>
+            </div>
+            <div className="p-4">
+              <p className="text-xs font-bold text-blue-100/60">Status</p>
+              <p className="mt-1 text-sm font-black text-white">Driver is heading to your location</p>
+            </div>
           </div>
+
+          <button onClick={onBookAnother} className="mt-5 w-full rounded-[1.35rem] border border-white/15 bg-white/10 px-5 py-3 text-sm font-black text-blue-100 transition hover:bg-white/15">Book Another Ride</button>
         </aside>
+
+        <section className="p-5">
+          <div className="relative overflow-hidden rounded-[1.5rem] border border-blue-300/15 bg-slate-950 shadow-2xl shadow-blue-950/35">
+            {isLoaded && apiKey ? (
+              <GoogleMap
+                mapContainerStyle={{ width: '100%', height: '500px' }}
+                center={mapCenter}
+                zoom={driver && pickup ? 13 : 12}
+                options={{
+                  styles: darkMapStyles,
+                  disableDefaultUI: true,
+                  zoomControl: true,
+                  clickableIcons: false,
+                  gestureHandling: 'greedy',
+                }}
+              >
+                {driverRoute.directions && (
+                  <DirectionsRenderer
+                    directions={driverRoute.directions}
+                    options={{
+                      suppressMarkers: true,
+                      polylineOptions: {
+                        strokeColor: '#2683ff',
+                        strokeWeight: 6,
+                        strokeOpacity: 0.95,
+                      },
+                    }}
+                  />
+                )}
+                {driver && (
+                  <OverlayView position={driver} mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}>
+                    <div className="-translate-x-1/2 -translate-y-1/2">
+                      <div className="w-24 rounded-xl bg-blue-950/90 px-3 py-2 text-center text-xs font-black leading-tight text-blue-100 shadow-xl ring-1 ring-blue-300/25">
+                        Driver
+                        <p className="mt-1 whitespace-nowrap text-blue-300">{driverRoute.distance || '-- km'}</p>
+                      </div>
+                      <div className="mx-auto mt-2 grid h-16 w-16 place-items-center rounded-full border-2 border-white bg-slate-950/95 shadow-2xl shadow-blue-500/35">
+                        <img src={vehicleImageForType(ride.vehicleType || ride.driverVehicleType)} alt={formatVehicleType(ride.vehicleType || ride.driverVehicleType)} className="h-12 w-12 rounded-full object-cover" />
+                        <span className="absolute h-3.5 w-3.5 translate-x-7 translate-y-4 rounded-full border-2 border-slate-950 bg-emerald-400" />
+                      </div>
+                    </div>
+                  </OverlayView>
+                )}
+                {pickup && (
+                  <>
+                    <Marker position={pickup} label={{ text: 'P', color: '#ffffff', fontWeight: '900' }} />
+                    <OverlayView position={pickup} mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}>
+                      <div className="translate-x-[-50%] translate-y-[24px] rounded-xl bg-blue-600 px-3 py-1 text-xs font-black text-white shadow-xl">You</div>
+                    </OverlayView>
+                  </>
+                )}
+                {drop && <Marker position={drop} label={{ text: 'D', color: '#ffffff', fontWeight: '900' }} />}
+              </GoogleMap>
+            ) : (
+              <div className="grid h-[500px] place-items-center px-6 text-center text-sm font-bold text-blue-100">Add VITE_GOOGLE_MAPS_API_KEY to show live driver tracking.</div>
+            )}
+          </div>
+          <div className="mt-4 grid gap-4 rounded-[1.35rem] border border-blue-300/15 bg-white/[0.05] p-5 md:grid-cols-[1fr_auto_1fr] md:items-center">
+            <RouteMini label="Pickup Location" address={ride.pickupAddress} tone="blue" />
+            <div className="hidden h-px w-44 bg-gradient-to-r from-transparent via-blue-400 to-transparent md:block" />
+            <RouteMini label="Drop Location" address={ride.dropAddress} tone="emerald" />
+          </div>
+        </section>
       </div>
     </motion.section>
+  )
+}
+
+function RouteMini({ label, address, tone }) {
+  const toneClass = tone === 'emerald' ? 'bg-emerald-400/15 text-emerald-300' : 'bg-blue-500/18 text-blue-300'
+  return (
+    <div className="flex items-center gap-4">
+      <div className={`grid h-14 w-14 shrink-0 place-items-center rounded-2xl ${toneClass}`}>PIN</div>
+      <div className="min-w-0">
+        <p className="text-sm font-bold text-blue-100/65">{label}</p>
+        <p className="mt-1 truncate text-xl font-black text-white">{formatPlaceName(address) || address || 'Not available'}</p>
+        <p className="mt-1 truncate text-sm font-semibold text-blue-100/55">{address}</p>
+      </div>
+    </div>
   )
 }
 
@@ -432,9 +582,17 @@ function MetricCard({ label, value }) {
 }
 
 function formatVehicleType(type) {
+  if (!type) return 'Vehicle'
   if (type === 'motor bike') return 'Motor Bike'
   if (type === 'three wheeler') return 'Three Wheeler'
   return type.charAt(0).toUpperCase() + type.slice(1)
+}
+
+function vehicleImageForType(type = '') {
+  if (type === 'motor bike') return vehicleMotorBikeImage
+  if (type === 'three wheeler') return vehicleThreeWheelerImage
+  if (type === 'van') return vehicleVanImage
+  return vehicleCarImage
 }
 
 function formatRouteDistance(routeInfo) {

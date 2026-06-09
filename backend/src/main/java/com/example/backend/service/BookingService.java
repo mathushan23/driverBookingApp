@@ -3,9 +3,11 @@ package com.example.backend.service;
 import com.example.backend.model.Booking;
 import com.example.backend.model.BookingRequest;
 import com.example.backend.model.BookingResponse;
+import com.example.backend.model.NearbyDriverResponse;
 import com.example.backend.model.UserAccount;
 import com.example.backend.repository.BookingRepository;
 import com.example.backend.repository.UserAccountRepository;
+import java.util.Comparator;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -171,6 +173,7 @@ public class BookingService {
                 ? null
                 : users.findById(booking.getDriverId()).orElse(null);
         UserAccount rider = users.findById(booking.getRiderId()).orElse(null);
+        List<NearbyDriverResponse> nearbyDrivers = nearbyDrivers(booking);
 
         return new BookingResponse(
                 booking.getId(),
@@ -196,7 +199,8 @@ public class BookingService {
                 booking.getPrice(),
                 booking.getSpecialNote(),
                 booking.getStatus(),
-                countNearbyDrivers(booking)
+                nearbyDrivers.size(),
+                nearbyDrivers
         );
     }
 
@@ -217,20 +221,29 @@ public class BookingService {
         return 3;
     }
 
-    private int countNearbyDrivers(Booking booking) {
-        return (int) users.findAll()
+    private List<NearbyDriverResponse> nearbyDrivers(Booking booking) {
+        return users.findAll()
                 .stream()
                 .filter(user -> "driver".equals(user.getRole()))
                 .filter(user -> "AVAILABLE".equals(user.getDriverStatus()))
                 .filter(user -> vehicleMatches(user, booking))
                 .filter(user -> user.getLatitude() != null && user.getLongitude() != null)
-                .filter(user -> distanceKm(
+                .map(user -> new NearbyDriverResponse(
+                        user.getId(),
+                        user.getName(),
+                        user.getVehicleType(),
                         user.getLatitude(),
                         user.getLongitude(),
-                        booking.getPickupLatitude(),
-                        booking.getPickupLongitude()
-                ) <= DRIVER_MATCH_RADIUS_KM)
-                .count();
+                        roundOneDecimal(distanceKm(
+                                user.getLatitude(),
+                                user.getLongitude(),
+                                booking.getPickupLatitude(),
+                                booking.getPickupLongitude()
+                        ))
+                ))
+                .filter(driver -> driver.distanceKm() <= DRIVER_MATCH_RADIUS_KM)
+                .sorted(Comparator.comparingDouble(NearbyDriverResponse::distanceKm))
+                .toList();
     }
 
     private boolean vehicleMatches(UserAccount driver, Booking booking) {

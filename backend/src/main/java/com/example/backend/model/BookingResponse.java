@@ -1,5 +1,7 @@
 package com.example.backend.model;
 
+import java.util.List;
+
 public record BookingResponse(
         Long id,
         Long riderId,
@@ -24,6 +26,7 @@ public record BookingResponse(
         Double price,
         String specialNote,
         String status,
-        int nearbyDriverCount
+        int nearbyDriverCount,
+        List<NearbyDriverResponse> nearbyDrivers
 ) {
 }
