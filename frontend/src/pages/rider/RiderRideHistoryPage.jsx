@@ -36,7 +36,7 @@ export function RiderRideHistoryPage({ user, logout }) {
 }
 
 function RideHistoryCard({ ride, index, onTrack }) {
-  const active = ride.status === 'ACCEPTED' || ride.status === 'PENDING'
+  const active = ride.status === 'ACCEPTED' || ride.status === 'ON_THE_WAY' || ride.status === 'STARTED' || ride.status === 'PENDING'
   return (
     <motion.article initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }} className={`rounded-[1.5rem] border p-5 ${active ? 'border-blue-300/35 bg-blue-500/15' : 'border-white/10 bg-white/10'}`}>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">

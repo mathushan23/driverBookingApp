@@ -5,7 +5,7 @@ import { useState } from 'react'
 const libraries = ['places']
 const defaultCenter = { lat: 6.9271, lng: 79.8612 }
 
-export function LocationPicker({ label, value, onChange, allowCurrentLocation = false }) {
+export function LocationPicker({ label, value, onChange, allowCurrentLocation = false, actions = null }) {
   const [autocomplete, setAutocomplete] = useState(null)
   const [mapOpen, setMapOpen] = useState(false)
   const [mapCenter, setMapCenter] = useState(value?.lat && value?.lng ? { lat: value.lat, lng: value.lng } : defaultCenter)
@@ -138,6 +138,7 @@ export function LocationPicker({ label, value, onChange, allowCurrentLocation = 
         <button type="button" onClick={openMap} className="rounded-xl border border-blue-300/25 bg-slate-950/35 px-3 py-1.5 text-xs font-black text-blue-50 transition hover:bg-blue-500/20">
           Select from Map
         </button>
+        {actions}
       </div>
 
       {error && <p className="text-xs font-bold text-red-200">{error}</p>}

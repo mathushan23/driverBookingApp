@@ -65,4 +65,9 @@ public class BookingController {
     public BookingResponse completeBooking(@PathVariable Long bookingId, @RequestParam Long driverId) {
         return bookingService.completeBooking(bookingId, driverId);
     }
+
+    @PatchMapping("/{bookingId}/driver-status")
+    public BookingResponse updateDriverRideStatus(@PathVariable Long bookingId, @RequestParam Long driverId, @RequestParam String status) {
+        return bookingService.updateDriverRideStatus(bookingId, driverId, status);
+    }
 }

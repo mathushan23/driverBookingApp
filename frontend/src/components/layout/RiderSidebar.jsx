@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
+import gorideLogo from '../../assets/goride-logo.png'
 
 export function RiderSidebar({ user, logout }) {
   const location = useLocation()
@@ -12,7 +13,9 @@ export function RiderSidebar({ user, logout }) {
 
       <div className="relative flex min-h-full flex-col">
         <div className="mb-8 flex items-center gap-3">
-          <div className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-300 text-lg font-black shadow-xl shadow-blue-500/25">G</div>
+          <div className="grid h-12 w-12 place-items-center overflow-hidden rounded-2xl bg-white shadow-xl shadow-blue-500/25">
+            <img src={gorideLogo} alt="GoRide" className="h-full w-full object-cover" />
+          </div>
           <div>
             <p className="text-xl font-black tracking-tight text-white"><span className="text-sky-300">Go</span>Ride</p>
             <p className="text-xs font-bold text-blue-100/55">Rider workspace</p>

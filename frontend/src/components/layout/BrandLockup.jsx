@@ -1,10 +1,10 @@
-import { CarIcon } from '../icons/GoRideIcons'
+import gorideLogo from '../../assets/goride-logo.png'
 
 export function BrandLockup({ centered = false }) {
   return (
     <div className={`brand ${centered ? 'centered' : ''}`}>
       <div className="brand-mark">
-        <CarIcon />
+        <img src={gorideLogo} alt="GoRide" />
       </div>
       <div>
         <strong>GoRide</strong>

@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
-import { CarIcon } from '../icons/GoRideIcons'
+import gorideLogo from '../../assets/goride-logo.png'
 
 export function AuthLayout({ title, subtitle, children, footer }) {
   return (
@@ -14,8 +14,8 @@ export function AuthLayout({ title, subtitle, children, footer }) {
           className="w-full max-w-md rounded-[2rem] border border-white/15 bg-white/10 p-6 shadow-2xl shadow-blue-950/60 backdrop-blur-2xl sm:p-8"
         >
           <Link to="/login" className="mb-8 flex items-center justify-center gap-3">
-            <span className="grid h-12 w-12 place-items-center rounded-2xl bg-blue-500 text-white shadow-lg shadow-blue-500/35">
-              <CarIcon />
+            <span className="grid h-12 w-12 place-items-center overflow-hidden rounded-2xl bg-white shadow-lg shadow-blue-500/35">
+              <img src={gorideLogo} alt="GoRide" className="h-full w-full object-cover" />
             </span>
             <span>
               <span className="block text-xl font-black tracking-tight">Ride Booking</span>

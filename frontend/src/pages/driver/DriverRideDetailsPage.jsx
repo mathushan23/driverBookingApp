@@ -57,7 +57,7 @@ export function DriverRideDetailsPage({ user }) {
                 <RouteLine label="Drop" address={ride.dropAddress} lat={ride.dropLatitude} lng={ride.dropLongitude} />
               </div>
               {error && <p className="mt-5 rounded-2xl border border-red-300/30 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-100">{error}</p>}
-              {ride.status === 'ACCEPTED' && (
+              {ride.status === 'STARTED' && (
                 <button onClick={() => setConfirmOpen(true)} className="primary-action mt-5 max-w-xs">Complete Ride</button>
               )}
             </div>
@@ -78,7 +78,7 @@ export function DriverRideDetailsPage({ user }) {
             <motion.div initial={{ opacity: 0, y: 24, scale: 0.94 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 16, scale: 0.94 }} className="w-full max-w-md rounded-[2rem] border border-white/15 bg-slate-950 p-6 text-center shadow-2xl shadow-blue-950/60">
               <motion.div className="mx-auto h-20 w-20 rounded-full border-4 border-blue-300/30 border-t-blue-300" animate={{ rotate: 360 }} transition={{ duration: 1.1, repeat: Infinity, ease: 'linear' }} />
               <h3 className="mt-5 text-3xl font-black">Complete this ride?</h3>
-              <p className="mt-3 text-sm leading-6 text-blue-100/70">This will close the assignment and unlock your driver status.</p>
+                <p className="mt-3 text-sm leading-6 text-blue-100/70">This will close the assignment and unlock your driver status.</p>
               <div className="mt-6 grid gap-3 sm:grid-cols-2">
                 <button onClick={() => setConfirmOpen(false)} className="rounded-2xl border border-white/15 bg-white/10 px-5 py-3 text-sm font-black text-blue-100 hover:bg-white/15">Not Yet</button>
                 <button onClick={completeRide} disabled={completing} className="primary-action">{completing ? 'Completing...' : 'Complete Ride'}</button>

@@ -123,7 +123,7 @@ public class BookingService {
         }
 
         booking.setDriverId(driverId);
-        booking.setStatus("ACCEPTED");
+        booking.setStatus("ON_THE_WAY");
         driver.setDriverStatus("BUSY");
         users.save(driver);
         return toResponse(bookings.save(booking));
@@ -153,13 +153,33 @@ public class BookingService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the assigned driver can complete this ride");
         }
 
-        if (!"ACCEPTED".equals(booking.getStatus())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Only accepted rides can be completed");
+        if (!"STARTED".equals(booking.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Only started rides can be completed");
         }
 
         booking.setStatus("COMPLETED");
         driver.setDriverStatus("AVAILABLE");
         users.save(driver);
+        return toResponse(bookings.save(booking));
+    }
+
+    public BookingResponse updateDriverRideStatus(Long bookingId, Long driverId, String nextStatus) {
+        Booking booking = findBooking(bookingId);
+
+        if (!driverId.equals(booking.getDriverId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the assigned driver can update this ride");
+        }
+
+        String normalizedStatus = normalizeRideStatus(nextStatus);
+        if ("STARTED".equals(normalizedStatus) && !"ON_THE_WAY".equals(booking.getStatus()) && !"ACCEPTED".equals(booking.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Ride can be started only when driver is on the way");
+        }
+
+        if ("COMPLETED".equals(normalizedStatus)) {
+            return completeBooking(bookingId, driverId);
+        }
+
+        booking.setStatus(normalizedStatus);
         return toResponse(bookings.save(booking));
     }
 
@@ -209,7 +229,7 @@ public class BookingService {
     }
 
     private int statusRank(String status) {
-        if ("ACCEPTED".equals(status)) {
+        if ("ON_THE_WAY".equals(status) || "STARTED".equals(status) || "ACCEPTED".equals(status)) {
             return 0;
         }
         if ("PENDING".equals(status)) {
@@ -305,5 +325,19 @@ public class BookingService {
         }
 
         return normalized;
+    }
+
+    private String normalizeRideStatus(String status) {
+        String normalized = trimToNull(status);
+        if (normalized == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ride status is required");
+        }
+
+        normalized = normalized.toUpperCase().replace("-", "_").replace(" ", "_");
+        if ("ON_THE_WAY".equals(normalized) || "STARTED".equals(normalized) || "COMPLETED".equals(normalized)) {
+            return normalized;
+        }
+
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unsupported ride status");
     }
 }

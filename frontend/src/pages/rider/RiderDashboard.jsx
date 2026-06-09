@@ -1,6 +1,6 @@
 import { DirectionsRenderer, GoogleMap, Marker, OverlayView, useJsApiLoader } from '@react-google-maps/api'
-import { motion } from 'framer-motion'
-import { useEffect, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import defaultUserImage from '../../assets/default-user.png'
 import vehicleCarImage from '../../assets/vehicle-car.png'
@@ -19,6 +19,14 @@ const vehicleTypes = [
   { value: 'car', label: 'Car', image: vehicleCarImage, seats: 'Comfort ride' },
   { value: 'van', label: 'Van', image: vehicleVanImage, seats: 'Group ride' },
 ]
+const confettiPieces = Array.from({ length: 32 }, (_, index) => ({
+  id: index,
+  left: `${8 + ((index * 13) % 84)}%`,
+  delay: (index % 8) * 0.12,
+  duration: 2.4 + (index % 5) * 0.18,
+  color: ['#3b82f6', '#22c55e', '#f97316', '#eab308', '#a855f7', '#fb7185'][index % 6],
+  rotate: (index * 37) % 180,
+}))
 const defaultMapCenter = { lat: 6.9271, lng: 79.8612 }
 const mapLibraries = ['places']
 const darkMapStyles = [
@@ -50,14 +58,29 @@ export function RiderDashboard({ user, logout }) {
   const [loadingCurrentRide, setLoadingCurrentRide] = useState(true)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+  const [completedRide, setCompletedRide] = useState(null)
   const [routeInfo, setRouteInfo] = useState({ loading: false, distance: null, duration: null, directions: null, error: '' })
+  const activeRideIdRef = useRef(location.state?.acceptedBooking?.id || null)
+  const completedRideShownRef = useRef(null)
 
   const loadCurrentRide = async () => {
     if (!user?.id) return
     setLoadingCurrentRide(true)
     try {
       const { data } = await api.get(`/bookings/rider-history/${user.id}`)
-      const activeRide = data.find((ride) => ride.status === 'ACCEPTED')
+      const activeRide = data.find((ride) => isActiveRideStatus(ride.status))
+      const justCompletedRide = activeRideIdRef.current
+        ? data.find((ride) => ride.id === activeRideIdRef.current && ride.status === 'COMPLETED')
+        : null
+
+      if (activeRide) {
+        activeRideIdRef.current = activeRide.id
+      } else if (justCompletedRide && completedRideShownRef.current !== justCompletedRide.id) {
+        completedRideShownRef.current = justCompletedRide.id
+        activeRideIdRef.current = null
+        setCompletedRide(justCompletedRide)
+      }
+
       setCurrentRide(activeRide || null)
       setConfirmation(activeRide || null)
       setShowBookingForm(activeRide && !bookingFormOpened ? false : true)
@@ -230,6 +253,18 @@ export function RiderDashboard({ user, logout }) {
           )}
         </div>
       </section>
+      <AnimatePresence>
+        {completedRide && (
+          <RideCompletedModal
+            ride={completedRide}
+            onClose={() => {
+              setCompletedRide(null)
+              setBookingFormOpened(true)
+              setShowBookingForm(true)
+            }}
+          />
+        )}
+      </AnimatePresence>
     </main>
   )
 }
@@ -374,16 +409,17 @@ function CurrentRidePanel({ ride, loading, onBookAnother }) {
   const pickup = ride?.pickupLatitude && ride?.pickupLongitude ? { lat: ride.pickupLatitude, lng: ride.pickupLongitude } : null
   const drop = ride?.dropLatitude && ride?.dropLongitude ? { lat: ride.dropLatitude, lng: ride.dropLongitude } : null
   const driver = ride?.driverLatitude && ride?.driverLongitude ? { lat: ride.driverLatitude, lng: ride.driverLongitude } : null
-  const mapCenter = driver && pickup
-    ? { lat: (driver.lat + pickup.lat) / 2, lng: (driver.lng + pickup.lng) / 2 }
-    : pickup || driver || defaultMapCenter
+  const trackingDestination = ride?.status === 'STARTED' ? drop : pickup
+  const mapCenter = driver && trackingDestination
+    ? { lat: (driver.lat + trackingDestination.lat) / 2, lng: (driver.lng + trackingDestination.lng) / 2 }
+    : trackingDestination || driver || defaultMapCenter
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: apiKey || 'missing-key',
     libraries: mapLibraries,
   })
 
   useEffect(() => {
-    if (!driver || !pickup || !window.google?.maps?.DirectionsService) {
+    if (!driver || !trackingDestination || !window.google?.maps?.DirectionsService) {
       setDriverRoute({ loading: false, directions: null, duration: '', distance: '', error: '' })
       return
     }
@@ -394,7 +430,7 @@ function CurrentRidePanel({ ride, loading, onBookAnother }) {
     directionsService.route(
       {
         origin: driver,
-        destination: pickup,
+        destination: trackingDestination,
         travelMode: window.google.maps.TravelMode.DRIVING,
       },
       (result, status) => {
@@ -417,7 +453,7 @@ function CurrentRidePanel({ ride, loading, onBookAnother }) {
     return () => {
       active = false
     }
-  }, [driver?.lat, driver?.lng, pickup?.lat, pickup?.lng])
+  }, [driver?.lat, driver?.lng, trackingDestination?.lat, trackingDestination?.lng])
 
   if (loading && !ride) {
     return <div className="rounded-[2rem] border border-white/15 bg-white/10 p-6 text-sm font-bold text-blue-100 shadow-2xl shadow-blue-950/30 backdrop-blur-xl">Loading current ride...</div>
@@ -435,8 +471,8 @@ function CurrentRidePanel({ ride, loading, onBookAnother }) {
             <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
             Driver Accepted
           </div>
-          <h2 className="mt-4 text-3xl font-black tracking-tight">Your driver is on the way!</h2>
-          <p className="mt-2 text-sm font-semibold leading-6 text-blue-100/70">Sit tight. Your driver is heading to your pickup location.</p>
+          <h2 className="mt-4 text-3xl font-black tracking-tight">{ride.status === 'STARTED' ? 'Your ride has started!' : 'Your driver is on the way!'}</h2>
+          <p className="mt-2 text-sm font-semibold leading-6 text-blue-100/70">{ride.status === 'STARTED' ? 'You are currently heading to your destination.' : 'Sit tight. Your driver is heading to your pickup location.'}</p>
 
           <div className="mt-6 border-t border-white/10 pt-5">
             <div className="flex items-center gap-4">
@@ -473,7 +509,7 @@ function CurrentRidePanel({ ride, loading, onBookAnother }) {
             </div>
             <div className="p-4">
               <p className="text-xs font-bold text-blue-100/60">Status</p>
-              <p className="mt-1 text-sm font-black text-white">Driver is heading to your location</p>
+              <p className="mt-1 text-sm font-black text-white">{formatRideStatus(ride.status)}</p>
             </div>
           </div>
 
@@ -561,6 +597,80 @@ function RouteMini({ label, address, tone }) {
   )
 }
 
+function RideCompletedModal({ ride, onClose }) {
+  return (
+    <motion.div
+      className="fixed inset-0 z-50 grid place-items-center overflow-hidden bg-slate-950/88 p-4 backdrop-blur-xl"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      {confettiPieces.map((piece) => (
+        <motion.span
+          key={piece.id}
+          className="absolute top-[-24px] h-4 w-2 rounded-full"
+          style={{ left: piece.left, backgroundColor: piece.color }}
+          initial={{ y: -30, opacity: 0, rotate: piece.rotate }}
+          animate={{ y: '110vh', opacity: [0, 1, 1, 0], rotate: piece.rotate + 420 }}
+          transition={{ duration: piece.duration, delay: piece.delay, repeat: Infinity, ease: 'linear' }}
+        />
+      ))}
+
+      <motion.div
+        initial={{ opacity: 0, y: 28, scale: 0.92 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 20, scale: 0.94 }}
+        transition={{ type: 'spring', stiffness: 170, damping: 18 }}
+        className="relative w-full max-w-xl overflow-hidden rounded-[2.2rem] border border-blue-300/20 bg-[radial-gradient(circle_at_50%_0%,rgba(34,197,94,.22),transparent_36%),linear-gradient(145deg,rgba(7,23,50,.98),rgba(2,8,23,.98))] px-6 py-10 text-center shadow-2xl shadow-blue-950/70"
+      >
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_34%,rgba(34,197,94,.18),transparent_30%)]" />
+
+        <div className="relative mx-auto grid h-36 w-36 place-items-center">
+          {[0, 0.35, 0.7].map((delay) => (
+            <motion.span
+              key={delay}
+              className="absolute inset-0 rounded-full border border-emerald-300/30 bg-emerald-400/5"
+              initial={{ scale: 0.58, opacity: 0.8 }}
+              animate={{ scale: 1.45, opacity: 0 }}
+              transition={{ duration: 2.1, delay, repeat: Infinity, ease: 'easeOut' }}
+            />
+          ))}
+          <motion.div
+            className="relative grid h-24 w-24 place-items-center rounded-full bg-emerald-400 shadow-[0_0_50px_rgba(34,197,94,.72)] ring-8 ring-emerald-300/20"
+            initial={{ scale: 0.4, rotate: -16 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ delay: 0.12, type: 'spring', stiffness: 220, damping: 14 }}
+          >
+            <motion.svg width="54" height="54" viewBox="0 0 54 54" fill="none">
+              <motion.path
+                d="M14 28.5L23 37L41 17"
+                stroke="white"
+                strokeWidth="7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                initial={{ pathLength: 0 }}
+                animate={{ pathLength: 1 }}
+                transition={{ delay: 0.35, duration: 0.45, ease: 'easeOut' }}
+              />
+            </motion.svg>
+          </motion.div>
+        </div>
+
+        <div className="relative">
+          <h2 className="mt-4 text-4xl font-black tracking-tight text-white">Ride Completed!</h2>
+          <p className="mt-3 text-base font-semibold text-blue-100/70">Thank you for riding with GoRide.</p>
+          <div className="mx-auto mt-6 grid max-w-sm gap-3 rounded-[1.35rem] border border-white/10 bg-white/[0.06] p-4 text-left">
+            <p className="text-sm font-bold text-blue-100/65">Trip fare</p>
+            <p className="text-3xl font-black text-white">LKR {Number(ride?.price || 0).toFixed(0)}</p>
+            <p className="text-sm font-semibold text-blue-100/60">{formatPlaceName(ride?.pickupAddress) || 'Pickup'} to {formatPlaceName(ride?.dropAddress) || 'Drop'}</p>
+          </div>
+          <button onClick={onClose} className="primary-action mx-auto mt-7 max-w-xs">Book Another Ride</button>
+        </div>
+      </motion.div>
+    </motion.div>
+  )
+}
+
 function RouteCard({ label, address, lat, lng }) {
   const href = lat && lng ? `https://www.google.com/maps/search/?api=1&query=${lat},${lng}` : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address || '')}`
   return (
@@ -586,6 +696,17 @@ function formatVehicleType(type) {
   if (type === 'motor bike') return 'Motor Bike'
   if (type === 'three wheeler') return 'Three Wheeler'
   return type.charAt(0).toUpperCase() + type.slice(1)
+}
+
+function isActiveRideStatus(status) {
+  return status === 'ON_THE_WAY' || status === 'STARTED' || status === 'ACCEPTED'
+}
+
+function formatRideStatus(status = '') {
+  if (status === 'ON_THE_WAY' || status === 'ACCEPTED') return 'Driver is heading to your location'
+  if (status === 'STARTED') return 'Ride started'
+  if (status === 'COMPLETED') return 'Completed'
+  return status || 'Unknown'
 }
 
 function vehicleImageForType(type = '') {

@@ -116,7 +116,7 @@ function AppRoutes({ user, saveUser }) {
         path="/driver/history"
         element={
           <RoleRoute user={user} allowedRole="driver">
-            <DriverRideHistoryPage user={user} />
+            <DriverRideHistoryPage user={user} logout={logout} />
           </RoleRoute>
         }
       />

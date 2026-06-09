@@ -305,7 +305,7 @@ svg {
 }
 
 .auth-panel .brand-mark {
-  background: linear-gradient(145deg, #1d4ed8, #38bdf8);
+  background: #fff;
   box-shadow: 0 14px 28px rgba(37, 99, 235, 0.36);
 }
 
@@ -316,14 +316,21 @@ svg {
   place-items: center;
   flex: 0 0 auto;
   border-radius: 14px;
+  overflow: hidden;
   color: #fff;
-  background: var(--navy);
+  background: #fff;
 }
 
 .brand-mark svg {
   width: 24px;
   height: 24px;
   fill: currentColor;
+}
+
+.brand-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .brand strong {
