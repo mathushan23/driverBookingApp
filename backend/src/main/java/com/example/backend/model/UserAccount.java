@@ -27,6 +27,9 @@ public class UserAccount {
     @Column(nullable = false)
     private String passwordHash;
 
+    @Column(unique = true)
+    private String authToken;
+
     private String role;
 
     @Column(nullable = false)
@@ -49,6 +52,9 @@ public class UserAccount {
     private String address;
 
     private String driverStatus = "OFFLINE";
+
+    @Column(nullable = false)
+    private boolean driverApproved = false;
 
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
@@ -94,6 +100,14 @@ public class UserAccount {
 
     public void setPasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
+    }
+
+    public String getAuthToken() {
+        return authToken;
+    }
+
+    public void setAuthToken(String authToken) {
+        this.authToken = authToken;
     }
 
     public String getRole() {
@@ -182,5 +196,13 @@ public class UserAccount {
 
     public void setDriverStatus(String driverStatus) {
         this.driverStatus = driverStatus;
+    }
+
+    public boolean isDriverApproved() {
+        return driverApproved;
+    }
+
+    public void setDriverApproved(boolean driverApproved) {
+        this.driverApproved = driverApproved;
     }
 }

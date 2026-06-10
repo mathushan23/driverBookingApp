@@ -1,4 +1,5 @@
 import gorideLogo from '../../assets/goride-logo.png'
+import { BrandText } from '../ui/BrandText'
 
 export function BrandLockup({ centered = false }) {
   return (
@@ -7,7 +8,7 @@ export function BrandLockup({ centered = false }) {
         <img src={gorideLogo} alt="GoRide" />
       </div>
       <div>
-        <strong>GoRide</strong>
+        <strong><BrandText goClassName="text-blue-500" rideClassName="text-white" /></strong>
         <span>Your Journey, One Tap Away</span>
       </div>
     </div>

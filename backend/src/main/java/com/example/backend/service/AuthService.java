@@ -35,7 +35,7 @@ public class AuthService {
         user.setEmail(email);
         user.setPasswordHash(passwordEncoder.encode(request.password()));
 
-        return toResponse(users.save(user));
+        return issueToken(users.save(user));
     }
 
     public AuthResponse login(LoginRequest request) {
@@ -46,10 +46,15 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password");
         }
 
-        return toResponse(user);
+        return issueToken(user);
     }
 
     public AuthResponse toResponse(UserAccount user) {
+        if (user.getAuthToken() == null || user.getAuthToken().isBlank()) {
+            user.setAuthToken(authTokenUtil.generateToken());
+            user = users.save(user);
+        }
+
         return new AuthResponse(
                 user.getId(),
                 user.getName(),
@@ -65,8 +70,14 @@ public class AuthService {
                 user.getLongitude(),
                 user.getAddress(),
                 user.getDriverStatus(),
-                authTokenUtil.generateToken()
+                user.isDriverApproved(),
+                user.getAuthToken()
         );
+    }
+
+    private AuthResponse issueToken(UserAccount user) {
+        user.setAuthToken(authTokenUtil.generateToken());
+        return toResponse(users.save(user));
     }
 
     private String normalizeEmail(String email) {

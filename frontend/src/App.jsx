@@ -100,7 +100,7 @@ function AppRoutes({ user, saveUser }) {
         path="/driver/welcome"
         element={
           <RoleRoute user={user} allowedRole="driver">
-            <DriverWelcomePage />
+            <DriverWelcomePage user={user} saveUser={saveUser} logout={logout} />
           </RoleRoute>
         }
       />

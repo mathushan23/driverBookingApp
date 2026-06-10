@@ -1,6 +1,6 @@
 package com.example.backend.model;
 
-public record AuthResponse(
+public record AdminUserResponse(
         Long id,
         String name,
         String email,
@@ -15,7 +15,6 @@ public record AuthResponse(
         Double longitude,
         String address,
         String driverStatus,
-        boolean driverApproved,
-        String token
+        boolean driverApproved
 ) {
 }

@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import gorideLogo from '../../assets/goride-logo.png'
+import { BrandText } from '../ui/BrandText'
 
 export function DriverSidebar({ user, logout, status, hasActiveRide, onStatusChange }) {
   const location = useLocation()
@@ -17,7 +18,7 @@ export function DriverSidebar({ user, logout, status, hasActiveRide, onStatusCha
             <img src={gorideLogo} alt="GoRide" className="h-full w-full object-cover" />
           </div>
           <div>
-            <p className="text-xl font-black tracking-tight text-white"><span className="text-emerald-300">Go</span>Ride</p>
+            <p className="text-xl font-black tracking-tight"><BrandText goClassName="text-emerald-300" rideClassName="text-white" /></p>
             <p className="text-xs font-bold text-blue-100/55">Driver workspace</p>
           </div>
         </div>

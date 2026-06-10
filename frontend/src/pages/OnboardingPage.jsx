@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import driverRoleImage from '../assets/driver-role.png'
 import riderRoleImage from '../assets/rider-role.png'
 import { CarIcon, PinIcon, WheelIcon } from '../components/icons/GoRideIcons'
+import { BrandText } from '../components/ui/BrandText'
 import { api } from '../services/api'
 import { setAuthSession, welcomePathFor } from '../services/authStorage'
 
@@ -141,7 +142,7 @@ function OnboardingHeader({ step }) {
   return (
     <header className="relative z-20 flex items-center justify-between px-5 py-4 sm:px-7">
       <div className="text-xl font-black tracking-tight">
-        <span className="text-sky-300">Go</span>Ride
+        <BrandText goClassName="text-sky-300" rideClassName="text-white" />
       </div>
       <div className="absolute left-1/2 top-6 flex -translate-x-1/2 items-center gap-2.5">
         {[1, 2, 3, 4].map((item) => (
@@ -168,7 +169,7 @@ function RoleSelection({ selectedRole, onSelect, onNext, error }) {
         <h1 className="text-3xl font-black leading-[1.04] tracking-tight sm:text-5xl">
           How would you like
           <br />
-          to use <span className="text-blue-500">GoRide?</span>
+          to use <BrandText goClassName="text-blue-500" rideClassName="text-white" />?
         </h1>
         <p className="mt-4 text-sm font-semibold text-blue-100/75">Choose your role and get started with your journey.</p>
       </div>

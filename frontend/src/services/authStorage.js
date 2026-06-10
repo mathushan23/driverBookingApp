@@ -2,6 +2,7 @@ const AUTH_USER_KEY = 'ride:user'
 const TOKEN_KEY = 'token'
 const ROLE_KEY = 'role'
 const FIRST_LOGIN_KEY = 'firstLogin'
+const DRIVER_WELCOME_KEY_PREFIX = 'driverWelcomeShown'
 
 export function getStoredUser() {
   const saved = localStorage.getItem(AUTH_USER_KEY)
@@ -36,4 +37,17 @@ export function dashboardPathFor(role) {
 
 export function welcomePathFor(role) {
   return role === 'driver' ? '/driver/welcome' : '/rider/welcome'
+}
+
+export function shouldShowDriverWelcome(user) {
+  if (!user || user.role !== 'driver' || !user.onboardingComplete || !user.driverApproved) return false
+  return localStorage.getItem(driverWelcomeKey(user.id)) !== 'true'
+}
+
+export function markDriverWelcomeShown(userId) {
+  localStorage.setItem(driverWelcomeKey(userId), 'true')
+}
+
+function driverWelcomeKey(userId) {
+  return `${DRIVER_WELCOME_KEY_PREFIX}:${userId}`
 }

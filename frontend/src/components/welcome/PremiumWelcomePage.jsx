@@ -1,10 +1,12 @@
 import { motion } from 'framer-motion'
 import { useEffect } from 'react'
+import { BrandText } from '../ui/BrandText'
 
 export function PremiumWelcomePage({ mode, title, onNext }) {
   const isDriver = mode === 'driver'
   const message = title || (isDriver ? "Welcome to the driver's community." : 'Enjoy your ride with us.')
   const words = message.split(' ')
+  const renderWord = (word) => (word === 'GoRide' ? <BrandText goClassName="text-blue-400" rideClassName="text-white" /> : word)
 
   useEffect(() => {
     const timer = window.setTimeout(onNext, 5200)
@@ -27,7 +29,7 @@ export function PremiumWelcomePage({ mode, title, onNext }) {
           transition={{ duration: 0.45 }}
           className={`mb-5 text-xs font-black uppercase tracking-[0.45em] ${isDriver ? 'text-amber-300' : 'text-blue-300'}`}
         >
-          GoRide
+          <BrandText goClassName="text-blue-400" rideClassName="text-white" />
         </motion.p>
 
         <h1 className="mx-auto flex max-w-5xl flex-wrap justify-center gap-x-4 gap-y-3 text-4xl font-black leading-tight tracking-tight sm:text-6xl lg:text-7xl">
@@ -39,7 +41,7 @@ export function PremiumWelcomePage({ mode, title, onNext }) {
               transition={{ delay: 0.35 + index * 0.32, duration: 0.95, ease: [0.22, 1, 0.36, 1] }}
               className="inline-block"
             >
-              {word}
+              {renderWord(word)}
             </motion.span>
           ))}
         </h1>

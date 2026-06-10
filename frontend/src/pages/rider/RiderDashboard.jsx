@@ -10,6 +10,7 @@ import vehicleVanImage from '../../assets/vehicle-van.png'
 import { BackgroundFX } from '../../components/auth/AuthLayout'
 import { RiderSidebar } from '../../components/layout/RiderSidebar'
 import { LocationPicker } from '../../components/location/LocationPicker'
+import { BrandText } from '../../components/ui/BrandText'
 import { api } from '../../services/api'
 
 const assignedDriver = { name: 'Nimal Perera', vehicle: 'Toyota Aqua', eta: '3 min', rating: '4.9' }
@@ -658,7 +659,7 @@ function RideCompletedModal({ ride, onClose }) {
 
         <div className="relative">
           <h2 className="mt-4 text-4xl font-black tracking-tight text-white">Ride Completed!</h2>
-          <p className="mt-3 text-base font-semibold text-blue-100/70">Thank you for riding with GoRide.</p>
+          <p className="mt-3 text-base font-semibold text-blue-100/70">Thank you for riding with <BrandText goClassName="text-blue-400" rideClassName="text-white" />.</p>
           <div className="mx-auto mt-6 grid max-w-sm gap-3 rounded-[1.35rem] border border-white/10 bg-white/[0.06] p-4 text-left">
             <p className="text-sm font-bold text-blue-100/65">Trip fare</p>
             <p className="text-3xl font-black text-white">LKR {Number(ride?.price || 0).toFixed(0)}</p>

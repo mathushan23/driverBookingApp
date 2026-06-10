@@ -7,6 +7,7 @@ import com.example.backend.model.OnboardingRequest;
 import com.example.backend.model.UserAccount;
 import com.example.backend.repository.BookingRepository;
 import com.example.backend.repository.UserAccountRepository;
+import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -35,8 +36,16 @@ public class UserService {
         user.setVehicleType(normalizeVehicleType(request.vehicleType()));
         user.setVehicleNumber(trimToNull(request.vehicleNumber()));
         user.setOnboardingComplete(true);
+        if ("driver".equals(request.role())) {
+            user.setDriverApproved(false);
+            user.setDriverStatus("OFFLINE");
+        }
 
         return authService.toResponse(users.save(user));
+    }
+
+    public AuthResponse toAuthResponse(UserAccount user) {
+        return authService.toResponse(user);
     }
 
     public AuthResponse updateDriverLocation(Long userId, LocationRequest request) {
@@ -45,6 +54,10 @@ public class UserService {
 
         if (!"driver".equals(user.getRole())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only drivers can update driver location");
+        }
+
+        if (!user.isDriverApproved()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Admin approval is required before going online");
         }
 
         user.setLatitude(request.latitude());
@@ -62,7 +75,11 @@ public class UserService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only drivers can update driver status");
         }
 
-        boolean hasActiveRide = bookings.existsByDriverIdAndStatus(userId, "ACCEPTED");
+        if (!user.isDriverApproved()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Admin approval is required before changing driver status");
+        }
+
+        boolean hasActiveRide = bookings.existsByDriverIdAndStatusIn(userId, List.of("ACCEPTED", "ON_THE_WAY", "STARTED"));
         if (hasActiveRide && !"BUSY".equals(request.status())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Complete the active ride before changing driver status");
         }

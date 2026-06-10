@@ -74,6 +74,10 @@ public class BookingService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only drivers can view ride requests");
         }
 
+        if (!driver.isDriverApproved()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Admin approval is required before receiving ride requests");
+        }
+
         if (driver.getLatitude() == null || driver.getLongitude() == null) {
             return List.of();
         }
@@ -103,6 +107,10 @@ public class BookingService {
 
         if (!"driver".equals(driver.getRole())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only drivers can accept ride requests");
+        }
+
+        if (!driver.isDriverApproved()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Admin approval is required before accepting rides");
         }
 
         if (driver.getLatitude() == null || driver.getLongitude() == null) {
@@ -188,7 +196,7 @@ public class BookingService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
     }
 
-    private BookingResponse toResponse(Booking booking) {
+    public BookingResponse toResponse(Booking booking) {
         UserAccount driver = booking.getDriverId() == null
                 ? null
                 : users.findById(booking.getDriverId()).orElse(null);
@@ -245,6 +253,7 @@ public class BookingService {
         return users.findAll()
                 .stream()
                 .filter(user -> "driver".equals(user.getRole()))
+                .filter(UserAccount::isDriverApproved)
                 .filter(user -> "AVAILABLE".equals(user.getDriverStatus()))
                 .filter(user -> vehicleMatches(user, booking))
                 .filter(user -> user.getLatitude() != null && user.getLongitude() != null)

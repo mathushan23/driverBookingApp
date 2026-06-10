@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 import { BrandLockup } from '../components/layout/BrandLockup'
+import { BrandText } from '../components/ui/BrandText'
 import { Button, Input } from '../components/ui/FormControls'
 import { dashboardStats, dashboardTitle } from '../data/gorideData'
 
@@ -26,7 +27,7 @@ export function DashboardPage({ user, logout }) {
         <div className="dashboard-hero">
           <div>
             <p className="eyebrow">{role} dashboard</p>
-            <h1>{dashboardTitle(role)}</h1>
+            <h1>{renderDashboardTitle(role)}</h1>
           </div>
           <div className="status-pill">{role === 'driver' ? 'Online' : 'Live platform'}</div>
         </div>
@@ -49,6 +50,14 @@ export function DashboardPage({ user, logout }) {
       </section>
     </main>
   )
+}
+
+function renderDashboardTitle(role) {
+  if (role === 'admin') {
+    return <>Control the <BrandText goClassName="text-blue-300" rideClassName="text-white" /> operation center</>
+  }
+
+  return dashboardTitle(role)
 }
 
 function dashboardLinks(role) {

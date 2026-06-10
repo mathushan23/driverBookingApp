@@ -1,8 +1,9 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { AuthShell } from '../components/layout/AuthShell'
+import { BrandText } from '../components/ui/BrandText'
 import { Button, FormHeader, Input } from '../components/ui/FormControls'
 import { api } from '../services/api'
-import { dashboardPathFor, setAuthSession } from '../services/authStorage'
+import { dashboardPathFor, setAuthSession, shouldShowDriverWelcome } from '../services/authStorage'
 import { useState } from 'react'
 
 export function LoginPage({ saveUser }) {
@@ -26,6 +27,8 @@ export function LoginPage({ saveUser }) {
         navigate('/admin/dashboard', { replace: true })
       } else if (!user.onboardingComplete) {
         navigate('/onboarding', { replace: true })
+      } else if (user.role === 'driver' && (!user.driverApproved || shouldShowDriverWelcome(user))) {
+        navigate('/driver/welcome', { replace: true })
       } else {
         navigate(dashboardPathFor(user.role), { replace: true })
       }
@@ -38,7 +41,7 @@ export function LoginPage({ saveUser }) {
 
   return (
     <AuthShell mode="login">
-      <FormHeader title="Welcome Back" subtitle="Access your rides, routes, and bookings with GoRide." />
+      <FormHeader title="Welcome Back" subtitle={<>Access your rides, routes, and bookings with <BrandText goClassName="text-blue-400" rideClassName="text-white" />.</>} />
       {location.state?.message && <p className="form-success">{location.state.message}</p>}
       <form className="auth-form" onSubmit={submit}>
         <Input label="Email Address" type="email" value={form.email} onChange={(email) => setForm({ ...form, email })} />
@@ -47,7 +50,7 @@ export function LoginPage({ saveUser }) {
         <Button label={loading ? 'Signing in...' : 'Start Riding'} disabled={loading} />
       </form>
       <p className="auth-switch">
-        New passenger or driver? <Link to="/signup">Create your GoRide account</Link>
+        New passenger or driver? <Link to="/signup">Create your <BrandText goClassName="text-cyan-300" rideClassName="text-white" /> account</Link>
       </p>
     </AuthShell>
   )
