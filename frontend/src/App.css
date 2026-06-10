@@ -80,6 +80,9 @@ svg {
   padding: 24px;
   isolation: isolate;
   justify-items: center;
+  background-image: url('./assets/auth-background.png');
+  background-size: cover;
+  background-position: center center;
 }
 
 .auth-orbit {
@@ -236,17 +239,18 @@ svg {
   position: relative;
   z-index: 2;
   width: 100%;
-  max-width: 350px;
-  padding: 18px;
-  border-radius: 20px;
+  max-width: 430px;
+  padding: 24px 28px;
+  border-radius: 30px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(15, 23, 42, 0.16)),
-    rgba(8, 18, 38, 0.16);
-  border: 1px solid rgba(34, 211, 238, 0.42);
+    radial-gradient(circle at 50% 0%, rgba(96, 165, 250, 0.12), transparent 40%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.12), rgba(15, 23, 42, 0.18) 45%, rgba(2, 8, 23, 0.24));
+  border: 1px solid rgba(255, 255, 255, 0.24);
   box-shadow:
-    0 18px 48px rgba(2, 6, 23, 0.22),
-    inset 0 1px 0 rgba(255, 255, 255, 0.14);
-  backdrop-filter: blur(9px) saturate(112%);
+    0 24px 70px rgba(2, 6, 23, 0.32),
+    0 0 54px rgba(37, 99, 235, 0.13),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(7px) saturate(142%);
 }
 
 .auth-panel::before {
@@ -257,13 +261,13 @@ svg {
   border-radius: inherit;
   background: conic-gradient(
     from var(--border-angle, 0deg),
-    rgba(0, 212, 255, 0.35),
-    rgba(0, 170, 255, 1),
-    rgba(255, 255, 255, 0.38),
-    rgba(0, 87, 255, 0.9),
-    rgba(0, 212, 255, 0.35)
+    rgba(14, 165, 233, 0.12),
+    rgba(59, 130, 246, 0.75),
+    rgba(255, 255, 255, 0.2),
+    rgba(34, 211, 238, 0.6),
+    rgba(14, 165, 233, 0.12)
   );
-  animation: borderSpin 7s linear infinite;
+  animation: borderSpin 10s linear infinite;
   pointer-events: none;
 }
 
@@ -272,10 +276,10 @@ svg {
   position: absolute;
   inset: 1px;
   z-index: -1;
-  border-radius: 19px;
+  border-radius: 29px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(15, 23, 42, 0.16)),
-    rgba(8, 18, 38, 0.12);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(15, 23, 42, 0.18)),
+    rgba(8, 18, 38, 0.1);
   pointer-events: none;
 }
 
@@ -291,22 +295,45 @@ svg {
 }
 
 .auth-panel .brand {
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .auth-panel .brand strong {
+  display: inline-flex;
   color: #f8fbff;
+  font-size: 2.65rem;
+  line-height: 0.9;
   text-shadow: 0 8px 22px rgba(2, 6, 23, 0.28);
 }
 
-.auth-panel .brand span {
-  color: #bdefff;
+.auth-panel .brand .brand-name {
+  display: inline-flex;
+  margin: 0;
+  font-family: "Trebuchet MS", "Gill Sans", sans-serif;
+  font-size: inherit;
+  line-height: inherit;
+  font-weight: 950;
+  letter-spacing: -0.04em;
+}
+
+.auth-panel .brand .brand-go {
+  display: inline;
+  color: #2f8fff;
+}
+
+.auth-panel .brand .brand-ride {
+  display: inline;
+  color: #ffffff;
+}
+
+.auth-panel .brand > div > span:not(.brand-name) {
+  color: #c8ddff;
   font-weight: 700;
 }
 
 .auth-panel .brand-mark {
   background: #fff;
-  box-shadow: 0 14px 28px rgba(37, 99, 235, 0.36);
+  box-shadow: 0 18px 38px rgba(37, 99, 235, 0.42);
 }
 
 .brand-mark {
@@ -357,8 +384,37 @@ svg {
   color: #b7c7df;
 }
 
+.auth-panel .brand strong {
+  display: inline-flex;
+  font-size: 2.85rem;
+  line-height: 0.9;
+}
+
+.auth-panel .brand .brand-name {
+  display: inline-flex;
+  margin: 0;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.auth-panel .brand .brand-go,
+.auth-panel .brand .brand-ride {
+  display: inline;
+  margin: 0;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.auth-panel .brand .brand-go {
+  color: #2f8fff;
+}
+
+.auth-panel .brand .brand-ride {
+  color: #ffffff;
+}
+
 .form-header {
-  margin-bottom: 14px;
+  margin-bottom: 18px;
   text-align: center;
 }
 
@@ -374,8 +430,11 @@ svg {
 
 .form-header h1 {
   max-width: none;
-  font-size: clamp(1.42rem, 3vw, 1.9rem);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.95rem, 4.6vw, 2.65rem);
   color: #f8fbff;
+  line-height: 0.98;
+  letter-spacing: -0.035em;
   text-shadow:
     0 8px 24px rgba(2, 6, 23, 0.36),
     0 0 22px rgba(34, 211, 238, 0.16);
@@ -386,48 +445,56 @@ svg {
 .welcome-copy p {
   margin: 8px 0 0;
   color: #d8ecff;
-  line-height: 1.55;
-  font-size: 0.82rem;
-  font-weight: 600;
+  line-height: 1.45;
+  font-size: 0.9rem;
+  font-weight: 700;
 }
 
 .auth-form {
   display: grid;
-  gap: 10px;
+  gap: 11px;
 }
 
 .field {
   display: grid;
   gap: 6px;
   color: #f8fbff;
-  font-size: 0.8rem;
-  font-weight: 900;
+  font-size: 0.78rem;
+  font-weight: 950;
+  letter-spacing: 0.02em;
+  text-align: left;
 }
 
 .field input {
   width: 100%;
-  height: 42px;
-  padding: 0 13px;
-  border-radius: 13px;
-  border: 1px solid rgba(191, 219, 254, 0.5);
-  background: rgba(2, 12, 32, 0.28);
+  height: 46px;
+  padding: 0 15px;
+  border-radius: 17px;
+  border: 1px solid rgba(147, 197, 253, 0.3);
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.56), rgba(2, 8, 23, 0.5));
   color: #ffffff;
-  font-weight: 700;
+  font-weight: 800;
   outline: none;
-  transition: border-color 0.16s, box-shadow 0.16s, background 0.16s;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 10px 24px rgba(2, 6, 23, 0.22);
+  transition: border-color 0.16s, box-shadow 0.16s, background 0.16s, transform 0.16s;
 }
 
 .field input::placeholder {
-  color: #d2e1f3;
-  font-weight: 500;
+  color: rgba(203, 213, 225, 0.58);
+  font-weight: 650;
 }
 
 .field input:focus {
   border-color: var(--cyan);
-  background: rgba(2, 12, 32, 0.38);
+  background: rgba(2, 12, 32, 0.9);
   box-shadow:
-    0 0 0 4px rgba(34, 211, 238, 0.16),
-    0 0 28px rgba(0, 170, 255, 0.26);
+    0 0 0 4px rgba(34, 211, 238, 0.14),
+    0 0 34px rgba(0, 170, 255, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transform: translateY(-1px);
 }
 
 .form-row {
@@ -467,24 +534,26 @@ svg {
 
 .primary-button,
 .ghost-button {
-  min-height: 42px;
+  min-height: 46px;
   border: 0;
-  border-radius: 13px;
+  border-radius: 17px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   text-decoration: none;
   cursor: pointer;
-  font-weight: 900;
+  font-weight: 950;
 }
 
 .primary-button {
+  margin-top: 4px;
   color: #fff;
   background: linear-gradient(135deg, var(--button-start) 0%, var(--electric) 45%, var(--button-end) 100%);
   box-shadow:
     0 16px 34px rgba(0, 87, 255, 0.42),
     0 0 28px rgba(0, 212, 255, 0.34),
     inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  letter-spacing: 0.01em;
   transition: filter 0.18s, box-shadow 0.18s, transform 0.18s;
 }
 
@@ -520,9 +589,10 @@ svg {
 }
 
 .auth-switch {
-  margin-top: 12px;
+  margin-top: 14px;
   text-align: center;
-  font-size: 0.86rem;
+  font-size: 0.9rem;
+  color: rgba(219, 234, 254, 0.72);
 }
 
 .social-auth {
@@ -1500,8 +1570,8 @@ svg {
 
   .field input,
   .primary-button {
-    min-height: 52px;
-    height: 52px;
+    min-height: 46px;
+    height: 46px;
   }
 
   .role-form {
@@ -1533,4 +1603,3 @@ svg {
   font-weight: 800;
   text-align: center;
 }
-

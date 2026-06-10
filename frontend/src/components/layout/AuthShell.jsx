@@ -8,7 +8,7 @@ export function AuthShell({ mode, children }) {
       <CityBackground />
       <div className="auth-orbit" aria-hidden="true" />
       <section className="auth-panel">
-        <BrandLockup centered />
+        <BrandLockup centered compact />
         <AnimatePresence mode="wait">
           <motion.div
             key={mode}

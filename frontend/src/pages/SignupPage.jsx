@@ -1,6 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { AuthShell } from '../components/layout/AuthShell'
-import { BrandText } from '../components/ui/BrandText'
 import { Button, FormHeader, Input } from '../components/ui/FormControls'
 import { api } from '../services/api'
 import { clearAuthSession } from '../services/authStorage'
@@ -39,17 +38,17 @@ export function SignupPage() {
 
   return (
     <AuthShell mode="signup">
-      <FormHeader title={<>Join <BrandText goClassName="text-blue-400" rideClassName="text-white" /></>} subtitle="Create your account. You will choose Rider or Driver after your first login." />
+      <FormHeader title="Create Account" subtitle="Fill in your details to continue." />
       <form className="auth-form" onSubmit={submit}>
         <Input label="Full Name" value={form.name} onChange={(name) => setForm({ ...form, name })} />
         <Input label="Email Address" type="email" value={form.email} onChange={(email) => setForm({ ...form, email })} />
         <Input label="Password" type="password" value={form.password} onChange={(password) => setForm({ ...form, password })} />
         <Input label="Confirm Password" type="password" value={form.confirmPassword} onChange={(confirmPassword) => setForm({ ...form, confirmPassword })} />
         {error && <p className="form-error">{error}</p>}
-        <Button label={loading ? 'Creating account...' : <>Create <BrandText goClassName="text-blue-200" rideClassName="text-white" /> Account</>} disabled={loading} />
+        <Button label={loading ? 'Creating account...' : 'Create Account'} disabled={loading} />
       </form>
       <p className="auth-switch">
-        Already part of <BrandText goClassName="text-cyan-300" rideClassName="text-white" />? <Link to="/login">Sign in instead</Link>
+        Already have an account? <Link to="/login">Login</Link>
       </p>
     </AuthShell>
   )
