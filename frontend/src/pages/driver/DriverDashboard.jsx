@@ -25,7 +25,7 @@ const darkMapStyles = [
   { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#07162b' }] },
 ]
 
-export function DriverDashboard({ user, logout }) {
+export function DriverDashboard({ user, saveUser, logout }) {
   const [status, setStatus] = useState(user?.driverStatus || 'OFFLINE')
   const [driverLocation, setDriverLocation] = useState({
     address: user?.address || '',
@@ -47,6 +47,11 @@ export function DriverDashboard({ user, logout }) {
   const showToast = (message, type = 'success') => {
     setToast({ message, type })
     setTimeout(() => setToast(null), 2800)
+  }
+
+  const persistUser = (updatedUser) => {
+    setAuthSession(updatedUser)
+    saveUser?.(updatedUser)
   }
 
   const loadRequests = async () => {
@@ -105,7 +110,7 @@ export function DriverDashboard({ user, logout }) {
         longitude: driverLocation.lng,
         address: driverLocation.address,
       })
-      setAuthSession(updatedUser)
+      persistUser(updatedUser)
       setSavedAddress(updatedUser.address)
       showToast('Location saved successfully')
       loadRequests()
@@ -122,7 +127,7 @@ export function DriverDashboard({ user, logout }) {
     setError('')
     try {
       const { data: updatedUser } = await api.patch(`/users/${user.id}/driver-status`, { status: nextStatus })
-      setAuthSession(updatedUser)
+      persistUser(updatedUser)
       showToast(`Status changed to ${nextStatus}`)
       loadRequests()
     } catch (requestError) {
